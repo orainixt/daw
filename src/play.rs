@@ -119,7 +119,10 @@ impl Play{
         //self.samples = self.file_audio.extract_samples().expect("Extract failed").into();   
 
               
-        let supported_config = device.default_output_config().expect("no default output config ?"); 
+        let supported_config = device
+            .default_output_config()
+            .expect("no default output config");
+
         let def_sample_rate = supported_config.sample_rate(); 
         let def_channels = supported_config.channels(); 
 

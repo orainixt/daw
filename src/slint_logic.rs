@@ -175,7 +175,7 @@ impl UICommandsSender{
 
             ui.on_request_sinwave(move || {
                 tx_cpy_9.send(UICommands::SendSinWave());
-            })
+            });
             ui.on_request_close_app(move ||{
                 tx_cpy_10.send(UICommands::Quit());
             });

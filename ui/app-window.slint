@@ -1,4 +1,4 @@
-import { Button, VerticalBox, HorizontalBox ,Slider, StandardListView, ProgressIndicator } from "std-widgets.slint";
+import { Button, VerticalBox, ListView,HorizontalBox ,Slider, StandardListView, ProgressIndicator } from "std-widgets.slint";
 
 
 
@@ -116,7 +116,7 @@ component FilePlayer{
 		
 	callback from-root-request-change-volume(float);
 
-	callback request-close-app();
+	callback from-root-request-close-app();
 
 	in property <[StandardListViewItem]> file_model;
 	in property <string> selected_file : "File selected : None";
@@ -198,13 +198,101 @@ component FilePlayer{
 
 }
 
+component Effects {
+	callback from-daw-request-sinwave();
+
+	in property <string> wave_selected :"No wave selected...";
+	in property <string> wave_picture : "default";
+	VerticalLayout {
+
+		// Add wave or effects
+		Rectangle {
+
+			border-width: 4pt;
+			background: #626c78;
+
+			VerticalBox {
+				x: 0; 
+				y:0;
+				height: parent.height * 0.9; width: parent.width * 0.2;
+				// Add wave
+				Rectangle {
+
+					border_width: 2pt;
+					border-radius: 3pt;
+
+					wave_popup := PopupWindow {
+						Rectangle {
+							background: #8C92AC;
+							
+							Rectangle {
+								Text {
+									text: "SinWave"; 
+								}	
+
+								TouchArea {
+									clicked => {
+										root.wave_selected = "SinWave"; 
+									}
+								}
+							}
+						}
+
+						x: 20px; 
+						y: 20px;
+						width: parent.width * 0.2;
+						height: parent.height * 0.9;
+
+					}
+
+					TouchArea {
+        		clicked => { wave_popup.show(); }
+					}
+
+					Text {
+						height: 20%;
+						text: "WaveType"; 
+					}
+					
+				}
+
+				Rectangle {
+					Text {
+						text: root.wave_selected; 
+					}
+					
+					Rectangle {
+					}
+				}
+				
+
+				// Final rectangle 
+				Rectangle {
+					height: parent.height * 0.2;				
+					background: #8C92AC;
+					Button {
+						text: "Add SinWave";
+
+						clicked => {from-daw-request-sinwave()}
+					}
+				}
+				
+			}
+		}	
+	}
+
+}
+
 
 component DAW{
 	callback from-root-request-sinwave();
 	VerticalLayout {
-		Button {
-			text: "sinwave";
-			clicked => {from-root-request-sinwave()}
+		height: parent.height * 0.3; 
+		width: parent.width;
+		x: 0; 
+		y: 0 ;
+		Effects {	
+			from-daw-request-sinwave => {from-root-request-sinwave()}
 		}
 	}
 }
@@ -231,6 +319,8 @@ export component AppWindow inherits Window {
 	callback request-stop();
 	callback request-change-volume(float);
 
+	callback request-close-app(); 
+
 	in property <[StandardListViewItem]> file_model;
 	in property <string> selected_file : "File selected : None";
 	in property <string> selected_file_title : "Media Title will be displayed here";
@@ -252,6 +342,8 @@ export component AppWindow inherits Window {
 			root.request-progress-bar();
 		}
 	}
+
+	background: #8c9aac;
 	
 	MenuBar {
 		Menu{
@@ -267,6 +359,7 @@ export component AppWindow inherits Window {
 		}
 	}
 	HorizontalLayout {
+		/*
 		FilePlayer {
 			from-root-request-fetch-directory => {root.request-fetch-directory()}
 			from-root-request-load-file => {root.request-load-file()}
@@ -275,6 +368,7 @@ export component AppWindow inherits Window {
 			from-root-request-stop => {root.request-stop()}
 			from-root-request-play-pause => {root.request-play-pause()}
 			from-root-request-change-volume(value) => {root.request-change-volume(value)}
+			from-root-request-close-app() => {root.request-close-app()}
 
 			file_model: file_model;
 			selected_file: selected_file;
@@ -282,7 +376,7 @@ export component AppWindow inherits Window {
 			progress_indicator: progress_indicator;
 			is_playing: is_playing;
 		}
-
+		*/
 		DAW{
 			from-root-request-sinwave => {root.request-sinwave()}
 		}
