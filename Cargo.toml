@@ -1,0 +1,33 @@
+[package]
+name = "audio_player"
+version = "0.1.0"
+edition = "2024"
+authors = ["Soyah Amin <amin.soyah.etu@univ-lille.fr>","Sauvage Lucas <lucassauvage@orange.fr>"]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+atomic_float = "1.1.0"
+cpal = "0.17.3"
+dasp = {version = "0.11.0" , features = ["signal"]}
+env_logger = "0.11.10"
+log = "0.4.29"
+native-dialog = "0.9.6"
+rfd = "0.17.2"
+slint = "1.16.0"
+slint-build = "1.16.0"
+symphonia = { version = "0.5.5", features = ["mp3", "ogg", "wav"] }
+
+[build-dependencies]
+slint-build = "1.14.1"
+
+[profile.release]
+codegen-units = 1
+lto = true
+
+[lib]
+name = "audio_player"
+path = "src/lib.rs"
+
+[[bin]]
+name = "audio-player"
+path = "src/main.rs"
