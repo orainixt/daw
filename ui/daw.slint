@@ -1,0 +1,130 @@
+import { Button, VerticalBox, ListView,HorizontalBox ,Slider, StandardListView, ProgressIndicator } from "std-widgets.slint";
+
+
+import {DAWService, SystemService} from "./utils.slint";
+
+component Effects {
+	callback from-daw-request-add-sinwave();
+	callback from-daw-request-singraph(float, float, string);
+
+	in-out property <string> wave_selected :"No wave selected...";
+	in property <string> wave_picture : "default";
+
+	in property <string> creating_sinwave;
+	in property <image> singraph; 
+
+	VerticalLayout {
+
+		// Add wave or effects
+		Rectangle {
+
+			border-width: 4pt;
+			background: DAWService.bg_main_color;
+
+			VerticalBox {
+				x: 0; 
+				y:0;
+				height: DAWService.wave_box_height; 
+				width: DAWService.wave_box_width;
+				// Add wave
+				Rectangle {
+
+					border_width: 2pt;
+					border-radius: 3pt;
+
+					wave_popup := PopupWindow {
+						Rectangle {
+							background: DAWService.bg_secondary_color;
+							
+							Rectangle {
+								Text {
+									text: "SinWave"; 
+								}	
+
+								TouchArea {
+									clicked => {
+										wave_selected= "SinWave"; 
+										from-daw-request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height, "sinwave");
+									}
+								}
+							}
+						}
+
+						x: 20px; 
+						y: 20px;
+						width: DAWService.wave_popup_width;
+						height: DAWService.wave_popup_height;
+
+					}
+
+					TouchArea {
+        		clicked => { wave_popup.show(); }
+					}
+
+					Text {
+						height: 20%;
+						text: "WaveType"; 
+					}
+					
+				}
+
+				Rectangle {
+					Text {
+						text: root.wave_selected; 
+					}
+					
+					Rectangle {
+						Image {
+							source: singraph;	
+						}
+					}
+				}
+				
+
+				// Final rectangle 
+				Rectangle {
+					height: parent.height * 0.2;				
+					background: DAWService.bg_secondary_color;
+					Button {
+						text: "Add SinWave";
+
+						clicked => {from-daw-request-add-sinwave()}
+					}
+				}
+				
+			}
+		}	
+	}
+
+}
+
+
+component DAW{
+	callback from-root-request-add-sinwave();
+	callback from-root-request-singraph(float, float, string);
+
+	in property <string> creating_sinwave;
+	in property <image> singraph; 
+
+	VerticalLayout {
+		height: DAWService.main_layout_height; 
+		width: DAWService.main_layout_width;
+		x: 0; 
+		y: 0 ;
+
+		Effects {
+			height: DAWService.effects_box_height; 
+			width: DAWService.effects_box_width;
+
+			from-daw-request-add-sinwave => {from-root-request-add-sinwave()}
+			from-daw-request-singraph => {
+				from-root-request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height, creating_sinwave)
+			}
+
+			creating_sinwave: creating_sinwave;
+			singraph: singraph; 
+		}
+	}
+}
+
+export {DAW}

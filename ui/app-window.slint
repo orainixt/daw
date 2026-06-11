@@ -1,329 +1,20 @@
 import { Button, VerticalBox, ListView,HorizontalBox ,Slider, StandardListView, ProgressIndicator } from "std-widgets.slint";
 
 
-
+import {SystemService} from "./utils.slint";
+import {FilePlayer} from "./file-player.slint";
+import {DAW} from "./daw.slint";
+import { DAWService } from "utils.slint";
 
 //enum for the UI main parameters
-global SystemService {
-	
-	in-out property <int> global_width : 1280;
-	in property <int> global_height : 720;
-	in-out property <length> global_width_length : global_width * 1px;
-	in-out property <length> global_height_length : global_height * 1px;
-	
-	callback request_needle_pos();
-}
 
-component SelectFilePopup inherits PopupWindow{
 
-	callback from-load-request-user-selected-file(int);
-	callback from-load-request-load-file();
-
-	in property <[StandardListViewItem]> file_model;
-	in property <string> selected_file;
-
-	close-policy: no-auto-close; 
-	height: SystemService.global_height_length * 0.8; 
-	width: SystemService.global_width_length * 0.8; 
-	x: (SystemService.global_width_length - root.width) / 2; 
-	y: (SystemService.global_height_length - root.height) / 2;
-
-	Rectangle { 
-		background: grey;
-
-		VerticalLayout {
-				StandardListView {
-					model: root.file_model;
-					current-item-changed(current-item) => {from-load-request-user-selected-file(current-item)}
-				}
-
-				Text {
-					text: root.selected_file;
-				}
-			HorizontalBox {
-				Button {
-					text: "Close";
-					clicked => root.close(); 
-				}
-				Button {
-					text: "Confirm";
-					clicked => {
-						root.from-load-request-load-file();
-						root.close();
-					}
-				}
-			}
-		}
-	}
-
-}
 
 // Popup for the user to choose a song from a list of files inside a directory defined backend
-component LoadFile inherits Rectangle {
-	
-	callback from-app-request-load-file();
-	callback from-app-request-fetch-directory();
-	callback from-app-request-user-selected-file(int);
-
-	callback from-app-request-import-file();
-	in property <[StandardListViewItem]> file_model;
-	in property <string> selected_file;
-
-	popup_select := SelectFilePopup{
-		from-load-request-user-selected-file(index) => {root.from-app-request-user-selected-file(index)}
-		from-load-request-load-file => {root.from-app-request-load-file()}
-		file_model: file_model;
-		selected_file: selected_file;
-	}
- 
-	VerticalBox {
-		Rectangle {
-			height: 15%;
-			Text {
-				text: "Supported formats: mp3, wav & ogg";
-				vertical-alignment: center; 
-
-			}
-		}
-
-		Button {
-			text: "Play from project folder..."; 
-			clicked => {
-				root.from-app-request-fetch-directory();
-				popup_select.show();
-			}
-		}
-
-		Button {
-			text: "Import file from your home directory..."; 
-			clicked => {
-				root.from-app-request-import-file();	
-			} 
-		}
-	}
-
-}
-
-component FilePlayer{
-
-	callback from-root-request-load-file(); 
-	callback from-root-request-fetch-directory(); 
-	callback from-root-request-user-selected-file(int); 
-	callback from-root-request-import-file(); 
-
-	callback from-root-request-stop(); 
-	callback from-root-request-play-pause();
-		
-	callback from-root-request-change-volume(float);
-
-	callback from-root-request-close-app();
-
-	in property <[StandardListViewItem]> file_model;
-	in property <string> selected_file : "File selected : None";
-	in property <string> selected_file_title : "Media Title will be displayed here";
-
-	in property <float> progress_indicator : 0.0;
-	in property <bool> is_playing : false;
 
 
-	VerticalLayout {
-		HorizontalLayout {
-			LoadFile {
-				from-app-request-load-file => {root.from-root-request-load-file()}
-				from-app-request-fetch-directory => {root.from-root-request-fetch-directory()}
-				from-app-request-user-selected-file(index) => {root.from-root-request-user-selected-file(index)}
-				from-app-request-import-file => {root.from-root-request-import-file()}
-				file_model: file_model;
-				selected_file: selected_file;
-			}
-
-					Text {
-						wrap: word-wrap; 
-							text: root.selected_file_title;
-							horizontal-alignment: center;
-							vertical-alignment: center; 
-							font-size: 20px;
-
-					}
-			}
-			VerticalBox {
-				HorizontalBox {
-					Button {
-						text: "Stop"; 
-						clicked =>
-							root.from-root-request-stop();
-					}
-					Button {
-						text: "Play/Pause";
-						clicked => {
-							root.from-root-request-play-pause();
-						}
-					}
-				}
-				Rectangle {
-					height:10%;
-					Text{
-						text: "Progress Bar";
-						horizontal-alignment: center;
-						vertical-alignment: center;
-					}
-				}
-				ProgressIndicator {
-					width: 90%; 
-					height: 40px;
-
-					progress: root.progress_indicator; 
-					
-				}
-
-			}
-
-			HorizontalLayout {
-				height: 15%;
-				Text {
-					text: "Volume slider :";
-					vertical-alignment: center;
-				}
-				Slider {
-					minimum: 0;
-					maximum: 100;
-					value: 50; 
-					released(value) => {
-						debug("(UI) : volume slider value changed : ", value);
-						root.from-root-request-change-volume(value);
-					}
-				}
-			}	
-	}
-
-}
-
-component Effects {
-	callback from-daw-request-sinwave();
-	callback from-daw-request-singraph(float, float);
-
-	in property <string> wave_selected :"No wave selected...";
-	in property <string> wave_picture : "default";
-
-	in property <string> creating_sinwave;
-	in property <image> singraph; 
-
-	VerticalLayout {
-
-		// Add wave or effects
-		Rectangle {
-
-			border-width: 4pt;
-			background: #626c78;
-
-			VerticalBox {
-				x: 0; 
-				y:0;
-				height: parent.height * 0.9; width: parent.width * 0.2;
-				// Add wave
-				Rectangle {
-
-					border_width: 2pt;
-					border-radius: 3pt;
-
-					wave_popup := PopupWindow {
-						Rectangle {
-							background: #8C92AC;
-							
-							Rectangle {
-								Text {
-									text: "SinWave"; 
-								}	
-
-								TouchArea {
-									clicked => {
-										//root.wave_selected = "SinWave"; 
-									}
-								}
-							}
-						}
-
-						x: 20px; 
-						y: 20px;
-						width: parent.width * 0.2;
-						height: parent.height * 0.9;
-
-					}
-
-					TouchArea {
-        		clicked => { wave_popup.show(); }
-					}
-
-					Text {
-						height: 20%;
-						text: "WaveType"; 
-					}
-					
-				}
-
-				Rectangle {
-					Text {
-						text: root.wave_selected; 
-					}
-					
-					Rectangle {
-						changed width => {
-							debug("init called");
-							debug("self.height :");
-							debug(self.height); 
-							debug("self.width :");
-							debug(self.width);
-							from-daw-request-singraph(self.height / 1px, self.width / 1px);
-						}
-
-						Image {
-							source: singraph;	
-						}
-					}
-				}
-				
-
-				// Final rectangle 
-				Rectangle {
-					height: parent.height * 0.2;				
-					background: #8C92AC;
-					Button {
-						text: "Add SinWave";
-
-						clicked => {from-daw-request-sinwave()}
-					}
-				}
-				
-			}
-		}	
-	}
-
-}
 
 
-component DAW{
-	callback from-root-request-sinwave();
-	callback from-root-request-singraph(float, float);
-
-	in property <string> creating_sinwave;
-	in property <image> singraph; 
-
-	VerticalLayout {
-		height: parent.height * 0.3; 
-		width: parent.width;
-		x: 0; 
-		y: 0 ;
-		Effects {	
-			from-daw-request-sinwave => {from-root-request-sinwave()}
-			from-daw-request-singraph => {
-				from-root-request-singraph(0.0, 0.0)
-			}
-
-			creating_sinwave: creating_sinwave;
-			singraph: singraph; 
-		}
-	}
-}
 
 // main component 
 export component AppWindow inherits Window {
@@ -360,7 +51,7 @@ export component AppWindow inherits Window {
 
 	// DAW 
 
-	callback request-sinwave();
+	callback request-add-sinwave();
 	callback request-singraph(float, float);
 	
 	in property <string> creating_sinwave;
@@ -393,9 +84,9 @@ export component AppWindow inherits Window {
 	HorizontalLayout {
 		DAW{
 
-			from-root-request-sinwave => {root.request-sinwave()}
+			from-root-request-add-sinwave => {root.request-add-sinwave()}
 			from-root-request-singraph => {
-				root.request-singraph(0.0, 0.0)
+				root.request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height)
 			}
 
 			creating_sinwave: creating_sinwave;
