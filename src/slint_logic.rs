@@ -8,6 +8,7 @@ use crate::{
     wave::{Wave},
     DAWService, 
     SystemService,
+    slint_utils::SlintUtils,
 };  
 use log::debug;
 
@@ -517,10 +518,12 @@ impl UICommandsReceiver{
             UICommands::SendSinGraph(height, width, wave) => {
                 
                 //println!("send_sin_graph");
+                //
+                let wave_str : &str = wave.as_str();
 
                 let (sin_tx, sin_rx) = mpsc::channel();
 
-                println!("wave : {}", wave);
+                println!("wave : {}", wave_str);
                 
                 let tx_cpy = sin_tx.clone(); 
                 self.ui.upgrade_in_event_loop(move |ui|{
@@ -533,55 +536,9 @@ impl UICommandsReceiver{
                     Err(_) => return,
                 };
                 
-                //println!("h: {}\nw: {}", f_singraph_h, f_singraph_w);
 
-                //cell and row count
-                let n = 20; 
-                let m = 20; 
-
-                let cell_width = f_singraph_w / (n as f32) ; 
-                let cell_height = f_singraph_h / (m as f32);
-
-                //println!("cell_width: {}\ncell_height: {}", cell_width, cell_height);
-
-
-                let mut pixel_buffer = SharedPixelBuffer::<Rgba8Pixel>::new(f_singraph_w as u32, f_singraph_h as u32);
-
-                let mut pixmap = tiny_skia::PixmapMut::from_bytes(
-                    pixel_buffer.make_mut_bytes(), f_singraph_w as u32, f_singraph_h as u32
-                ).unwrap();
-                pixmap.fill(tiny_skia::Color::TRANSPARENT);
-
-                let mut paint = Paint::default();
-                paint.set_color_rgba8(0, 0, 0, 200);
-                paint.anti_alias = false;
-
-                let path = {
-                    let mut pb = PathBuilder::new(); 
-                    
-                    let mut pb_width = cell_width; 
-                    while pb_width < f_singraph_w{
-                        pb.move_to(pb_width, 0.0); 
-                        pb.line_to(pb_width, f_singraph_h);
-                        pb_width += cell_width; 
-                    }
-
-                    let mut pb_height = cell_height; 
-                    while pb_height < f_singraph_h{
-                        pb.move_to(0.0 , pb_height); 
-                        pb.line_to(f_singraph_w, pb_height);
-                        pb_height += cell_height;
-                    }
-
-                    pb.finish().unwrap()
-                };
-
-                let mut stroke = Stroke::default();
-                stroke.width = 1.0;
-                stroke.line_cap = LineCap::Round;
-
-                pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
-
+                let pixel_buffer = SlintUtils::gen_checkered_bg(50,75 ,f_singraph_w, f_singraph_h, String::from(wave_str));
+                
                 self.ui.upgrade_in_event_loop(move |ui|{
                     let image = Image::from_rgba8_premultiplied(pixel_buffer);
                     ui.set_singraph(image); 

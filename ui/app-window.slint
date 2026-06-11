@@ -23,9 +23,6 @@ export component AppWindow inherits Window {
 
 	min-width: SystemService.global_width_length; 
 	min-height: SystemService.global_height_length;
-
-	property <int> _w: SystemService.global_width;
-  property <length> _h: DAWService.main_layout_height;
 	
 	// TO PLAY FILES 
 	callback request-load-popup();
@@ -88,11 +85,10 @@ export component AppWindow inherits Window {
 
 			from-root-request-add-sinwave => {root.request-add-sinwave()}
 			from-root-request-singraph => {
-				root.request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height, wave_selected)
+				root.request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height, DAWService.selected_wave_str)
 			}
 
 			singraph: singraph;
-			wave_selected: wave_selected;
 		}
 		/*
 		FilePlayer {

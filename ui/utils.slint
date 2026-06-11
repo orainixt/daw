@@ -28,11 +28,22 @@ export global DAWService {
 
 	in property <length> singraph_height: wave_box_height * 0.3;
 	in property <length> singraph_width : wave_box_width;
+
+
 	in property <float> f_singraph_height: singraph_height / 1px;
 	in property <float> f_singraph_width: singraph_width / 1px;
 
+	in-out property <string> selected_wave_str;
+
+
+	//Playlist 
+	in-out property <int> block_cpt;
+
+
+
+
 	in property <color> bg_main_color: #626c78;
 	in property <color> bg_secondary_color:  #8C92AC;
-	in property <color> border-color: #71797E; 
+	in property <color> border-color: #71797E;
 }
 

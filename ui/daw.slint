@@ -55,8 +55,8 @@ component Effects {
 
 								TouchArea {
 									clicked => {
-										root.wave_selected= "SinWave"; 
-										from-daw-request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height, wave_selected);
+										DAWService.selected_wave_str = "SinWave";	
+										from-daw-request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height,DAWService.selected_wave_str);
 									}
 								}
 							}
@@ -81,14 +81,26 @@ component Effects {
 				}
 
 				VerticalBox {
-					Text {
-						height: 20%; 
-						width: 100%;
+					HorizontalBox {
+						Text {
+							height: 20%; 
+							width: 50%;
 
-						vertical-alignment: center;
-						horizontal-alignment: center;
+							vertical-alignment: center;
+							horizontal-alignment: right;
 
-						text:"Oscillator";
+							text:"Oscillator";
+						
+						}
+
+						Text {
+							height: 20%; 
+							width: 50%;
+							vertical-alignment: center;
+							horizontal-alignment: left; 
+
+							text: "for : " + root.wave_selected; 
+						}
 					}
 					Rectangle {
 						border_width: 2pt;
@@ -121,6 +133,40 @@ component Effects {
 
 }
 
+component PlaylistBlock {
+    VerticalLayout {
+			
+		}
+}
+
+component PlaylistInput {
+	HorizontalBox {
+		// 
+		Rectangle {
+			width: 10%; 
+			height: 100%;
+
+			Text {
+				horizontal-alignment: left;
+				text: "Input " + DAWService.block_cpt; 
+			}
+		}
+	}
+}
+
+component Playlist {
+
+	init => {
+		DAWService.block_cpt += 1; 
+	}
+	
+	VerticalLayout {
+		PlaylistInput {
+		}
+		PlaylistInput {}
+	}	
+
+}
 
 component DAW{
 	callback from-root-request-add-sinwave();
@@ -141,11 +187,15 @@ component DAW{
 
 			from-daw-request-add-sinwave => {from-root-request-add-sinwave()}
 			from-daw-request-singraph => {
-				from-root-request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height, wave_selected)
+				from-root-request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height, DAWService.selected_wave_str)
 			}
 		
 			wave_selected: wave_selected; 
 			singraph: singraph; 
+		}
+
+		Playlist {
+
 		}
 	}
 }

@@ -4,4 +4,6 @@ pub mod fileReader;
 pub mod volume;
 pub mod play;
 pub mod slint_logic;
-pub mod wave; 
+pub mod slint_utils;
+pub mod wave;
+
