@@ -4,13 +4,31 @@ use crate::{AppWindow,
     fileReader::FileReader, 
     play::Play, 
     volume::{Volume, SourceType},
-    wave::{Wave}
+    wave::{Wave}, 
+    utils::{Utils}
 };  
 use log::debug;
 
 
-use slint::StandardListViewItem;
+use slint::{
+    StandardListViewItem, 
+    SharedPixelBuffer, 
+    Rgba8Pixel, 
+    Image
+}; 
 
+use tiny_skia::{
+    PathBuilder, 
+    Pixmap, 
+    Paint,
+    FillRule,
+    Transform, 
+    PixmapMut,
+    Stroke,
+    StrokeDash, 
+    LineCap,
+
+}; 
 use std::sync::Mutex;
 
 use std::{
@@ -38,6 +56,7 @@ pub enum UICommands{
     UpdateProgressBar(),
     StopSamples(),
     SendSinWave(),
+    SendSinGraph(f32, f32),
     Quit(),
 
 }
@@ -114,7 +133,7 @@ impl UICommandsSender{
     ///
     pub fn setup_callbacks(&mut self){
         
-        let tx_cpy_1 = self.tx.clone();
+        
         let tx_cpy_2 = self.tx.clone();
         let tx_cpy_3 = self.tx.clone();
         let tx_cpy_4 = self.tx.clone();
@@ -130,54 +149,71 @@ impl UICommandsSender{
 
         if let Some(ui) = self.ui.upgrade() {
 
+            let tx_cpy = self.tx.clone();
             ui.on_request_fetch_directory(
                 move ||{
-                    tx_cpy_2.send(UICommands::FetchDirectory());
+                    tx_cpy.send(UICommands::FetchDirectory());
             });
 
+            let tx_cpy = self.tx.clone();
             ui.on_request_user_selected_file(
                 /// the callbacks parameters defined in the Slint file can be caught like that.
                 move |index| {
-                    tx_cpy_3.send(UICommands::ClickedInsidePopup(index));
+                    tx_cpy.send(UICommands::ClickedInsidePopup(index));
             });
 
+            let tx_cpy = self.tx.clone();
             ui.on_request_load_file(
                 move || {
-                    tx_cpy_4.send(UICommands::LoadFile());
+                    tx_cpy.send(UICommands::LoadFile());
             });
 
+            let tx_cpy = self.tx.clone();
             ui.on_request_play_pause(
                 move ||{
-                    tx_cpy_5.send(UICommands::SwitchPlayMode());
+                    tx_cpy.send(UICommands::SwitchPlayMode());
             });
 
+            let tx_cpy = self.tx.clone();
             ui.on_request_import_file(
                 move ||{
-                    tx_cpy_6.send(UICommands::ImportFile());
+                    tx_cpy.send(UICommands::ImportFile());
                 }
             );
 
+            let tx_cpy = self.tx.clone();
             ui.on_request_stop(
                 move ||{
-                    tx_cpy_7.send(UICommands::StopSamples());
+                    tx_cpy.send(UICommands::StopSamples());
                 }
             );
 
+            let tx_cpy = self.tx.clone();
             ui.on_request_progress_bar(
                 move ||{
-                    tx_cpy_8.send(UICommands::UpdateProgressBar());
+                    tx_cpy.send(UICommands::UpdateProgressBar());
                 }
             );
 
+            let tx_cpy = self.tx.clone();
             ui.on_request_change_volume(move |value| {
-                tx_cpy_1.send(UICommands::ChangeVolume(value));
+                tx_cpy.send(UICommands::ChangeVolume(value));
             });
 
+            let tx_cpy = self.tx.clone();
             ui.on_request_sinwave(move || {
-                tx_cpy_9.send(UICommands::SendSinWave());
+                tx_cpy.send(UICommands::SendSinWave());
             });
+
+            let tx_cpy = self.tx.clone();
+            ui.on_request_singraph(move |height, width| {
+                println!("send order");
+                tx_cpy.send(UICommands::SendSinGraph(height, width)); 
+            });
+            
+            let tx_cpy = self.tx.clone();
             ui.on_request_close_app(move ||{
-                tx_cpy_10.send(UICommands::Quit());
+                tx_cpy.send(UICommands::Quit());
             });
         }
     }
@@ -225,6 +261,7 @@ pub struct UICommandsReceiver{
     nb_samples: Option<Arc<AtomicU64>>,
     total_samples: Arc<Option<u64>>,
     volume_handle: Option<Arc<Mutex<f32>>>,
+    creating_sinwave: String,
 }
 
 /// Implementation of the UICommandsReceiver structure
@@ -268,6 +305,8 @@ impl UICommandsReceiver{
             nb_samples: None,
             total_samples: Arc::new(None),
             volume_handle: None,
+            
+            creating_sinwave: String::new(),
         }
     }
 
@@ -481,6 +520,83 @@ impl UICommandsReceiver{
                     file_p.play_samples();
                 }
             }
+
+            UICommands::SendSinGraph(height, width) => {
+                
+                if (height == 0.0 || width == 0.0){
+                    println!("singraph dimensions was 0");
+                    return
+                }; 
+
+                println!("send_sin_graph");
+
+                println!("f32 height : {}\nf32 width : {}", height, width);
+                let u_width = width as u32; 
+                let u_height = height as u32; 
+                
+                println!("u32 height : {}\nu32 width : {}", u_width, u_height);
+
+                let mut pixel_buffer = SharedPixelBuffer::<Rgba8Pixel>::new(u_width as u32, u_height as u32);
+
+                let mut pixmap = PixmapMut::from_bytes(
+                    pixel_buffer.make_mut_bytes(), u_width, u_height
+                ).unwrap();
+
+
+                pixmap.fill(tiny_skia::Color::BLACK);
+                
+                // number of cols in the checkered bg 
+                let n = 200;
+                // rows 
+                let m = 300;
+
+                let cell_width = width / (n as f32) ; 
+                let cell_height = height / (m as f32);
+
+                let mut paint = Paint::default();
+                paint.set_color_rgba8(50, 127, 150, 200);
+                paint.anti_alias = true;
+
+                let path = {
+                    let mut pb = PathBuilder::new(); 
+                    
+                    let mut pb_width = cell_width; 
+                    while pb_width < width as f32{
+                        pb.move_to(pb_width, 0.0); 
+                        pb.line_to(pb_width, height as f32);
+                        pb_width += cell_width; 
+                    }
+
+                    let mut pb_height = cell_height; 
+                    while pb_height < height as f32{
+                        pb.move_to(0.0 , pb_height); 
+                        pb.line_to(width as f32, pb_height);
+                        pb_height += cell_height;
+                    }
+
+                    pb.close();
+                    pb.finish().unwrap()
+                };
+
+
+                pixmap.fill_path(
+                    &path,
+                    &paint,
+                    FillRule::Winding,
+                    Transform::identity(),
+                    None,
+                );
+
+
+                self.ui.upgrade_in_event_loop(move |ui|{
+                    let image = Image::from_rgba8_premultiplied(pixel_buffer);
+                    ui.set_singraph(image); 
+                });
+
+
+
+            }
+
             UICommands::Quit() => {
                 slint::quit_event_loop();     
             }

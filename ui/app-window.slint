@@ -200,9 +200,14 @@ component FilePlayer{
 
 component Effects {
 	callback from-daw-request-sinwave();
+	callback from-daw-request-singraph(float, float);
 
 	in property <string> wave_selected :"No wave selected...";
 	in property <string> wave_picture : "default";
+
+	in property <string> creating_sinwave;
+	in property <image> singraph; 
+
 	VerticalLayout {
 
 		// Add wave or effects
@@ -232,7 +237,7 @@ component Effects {
 
 								TouchArea {
 									clicked => {
-										root.wave_selected = "SinWave"; 
+										//root.wave_selected = "SinWave"; 
 									}
 								}
 							}
@@ -262,6 +267,18 @@ component Effects {
 					}
 					
 					Rectangle {
+						changed width => {
+							debug("init called");
+							debug("self.height :");
+							debug(self.height); 
+							debug("self.width :");
+							debug(self.width);
+							from-daw-request-singraph(self.height / 1px, self.width / 1px);
+						}
+
+						Image {
+							source: singraph;	
+						}
 					}
 				}
 				
@@ -286,6 +303,11 @@ component Effects {
 
 component DAW{
 	callback from-root-request-sinwave();
+	callback from-root-request-singraph(float, float);
+
+	in property <string> creating_sinwave;
+	in property <image> singraph; 
+
 	VerticalLayout {
 		height: parent.height * 0.3; 
 		width: parent.width;
@@ -293,6 +315,12 @@ component DAW{
 		y: 0 ;
 		Effects {	
 			from-daw-request-sinwave => {from-root-request-sinwave()}
+			from-daw-request-singraph => {
+				from-root-request-singraph(0.0, 0.0)
+			}
+
+			creating_sinwave: creating_sinwave;
+			singraph: singraph; 
 		}
 	}
 }
@@ -333,6 +361,10 @@ export component AppWindow inherits Window {
 	// DAW 
 
 	callback request-sinwave();
+	callback request-singraph(float, float);
+	
+	in property <string> creating_sinwave;
+	in property <image> singraph; 
 
 	// timer for the progress bar 
 	timer := Timer {
@@ -359,6 +391,16 @@ export component AppWindow inherits Window {
 		}
 	}
 	HorizontalLayout {
+		DAW{
+
+			from-root-request-sinwave => {root.request-sinwave()}
+			from-root-request-singraph => {
+				root.request-singraph(0.0, 0.0)
+			}
+
+			creating_sinwave: creating_sinwave;
+			singraph: singraph;
+		}
 		/*
 		FilePlayer {
 			from-root-request-fetch-directory => {root.request-fetch-directory()}
@@ -377,9 +419,7 @@ export component AppWindow inherits Window {
 			is_playing: is_playing;
 		}
 		*/
-		DAW{
-			from-root-request-sinwave => {root.request-sinwave()}
-		}
+
 	}
 }
 

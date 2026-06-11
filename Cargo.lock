@@ -526,6 +526,7 @@ dependencies = [
  "slint",
  "slint-build",
  "symphonia",
+ "tiny-skia 0.12.0",
 ]
 
 [[package]]
