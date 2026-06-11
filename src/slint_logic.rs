@@ -537,7 +537,9 @@ impl UICommandsReceiver{
                 let m = 300; 
 
                 let cell_width = (n as f32) / f_singraph_w ; 
-                let cell_height = (m as f32) / f_singraph_h; 
+                let cell_height = (m as f32) / f_singraph_h;
+
+                println!("cell_width: {}\ncell_height: {}", cell_width, cell_height);
 
 
                 let mut pixel_buffer = SharedPixelBuffer::<Rgba8Pixel>::new(f_singraph_w as u32, f_singraph_h as u32);
@@ -556,6 +558,7 @@ impl UICommandsReceiver{
                     
                     let mut pb_width = cell_width; 
                     while pb_width < width as f32{
+                        println!("pb_width : {}", pb_width);
                         pb.move_to(pb_width, 0.0); 
                         pb.line_to(pb_width, height as f32);
                         pb_width += cell_width; 
