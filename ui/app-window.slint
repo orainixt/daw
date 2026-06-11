@@ -54,10 +54,10 @@ export component AppWindow inherits Window {
 	// DAW 
 
 	callback request-add-sinwave();
-	callback request-singraph(float, float);
+	callback request-singraph(float, float, string);
 	
-	in property <string> creating_sinwave;
-	in property <image> singraph; 
+	in property <image> singraph;
+	in-out property <string> wave_selected;
 
 	// timer for the progress bar 
 	timer := Timer {
@@ -88,11 +88,11 @@ export component AppWindow inherits Window {
 
 			from-root-request-add-sinwave => {root.request-add-sinwave()}
 			from-root-request-singraph => {
-				root.request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height)
+				root.request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height, wave_selected)
 			}
 
-			creating_sinwave: creating_sinwave;
 			singraph: singraph;
+			wave_selected: wave_selected;
 		}
 		/*
 		FilePlayer {

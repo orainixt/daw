@@ -18,6 +18,7 @@ use slint::{
     Rgba8Pixel, 
     Image, 
     ComponentHandle,
+    SharedString,
 }; 
 
 use tiny_skia::{
@@ -59,7 +60,7 @@ pub enum UICommands{
     UpdateProgressBar(),
     StopSamples(),
     SendSinWave(),
-    SendSinGraph(f32, f32),
+    SendSinGraph(f32, f32, SharedString),
     Quit(),
 
 }
@@ -198,9 +199,9 @@ impl UICommandsSender{
             });
 
             let tx_cpy = self.tx.clone();
-            ui.on_request_singraph(move |height, width| {
+            ui.on_request_singraph(move |height, width, wave| {
                 println!("send order");
-                tx_cpy.send(UICommands::SendSinGraph(height, width)); 
+                tx_cpy.send(UICommands::SendSinGraph(height, width, wave)); 
             });
             
             let tx_cpy = self.tx.clone();
@@ -513,11 +514,13 @@ impl UICommandsReceiver{
                 }
             }
 
-            UICommands::SendSinGraph(height, width) => {
+            UICommands::SendSinGraph(height, width, wave) => {
                 
-                println!("send_sin_graph");
+                //println!("send_sin_graph");
 
                 let (sin_tx, sin_rx) = mpsc::channel();
+
+                println!("wave : {}", wave);
                 
                 let tx_cpy = sin_tx.clone(); 
                 self.ui.upgrade_in_event_loop(move |ui|{
@@ -530,16 +533,16 @@ impl UICommandsReceiver{
                     Err(_) => return,
                 };
                 
-                println!("h: {}\nw: {}", f_singraph_h, f_singraph_w);
+                //println!("h: {}\nw: {}", f_singraph_h, f_singraph_w);
 
                 //cell and row count
-                let n = 200; 
-                let m = 300; 
+                let n = 20; 
+                let m = 20; 
 
-                let cell_width = (n as f32) / f_singraph_w ; 
-                let cell_height = (m as f32) / f_singraph_h;
+                let cell_width = f_singraph_w / (n as f32) ; 
+                let cell_height = f_singraph_h / (m as f32);
 
-                println!("cell_width: {}\ncell_height: {}", cell_width, cell_height);
+                //println!("cell_width: {}\ncell_height: {}", cell_width, cell_height);
 
 
                 let mut pixel_buffer = SharedPixelBuffer::<Rgba8Pixel>::new(f_singraph_w as u32, f_singraph_h as u32);
@@ -550,40 +553,37 @@ impl UICommandsReceiver{
                 pixmap.fill(tiny_skia::Color::TRANSPARENT);
 
                 let mut paint = Paint::default();
-                paint.set_color_rgba8(0, 127, 0, 200);
-                paint.anti_alias = true;
+                paint.set_color_rgba8(0, 0, 0, 200);
+                paint.anti_alias = false;
 
                 let path = {
                     let mut pb = PathBuilder::new(); 
                     
                     let mut pb_width = cell_width; 
-                    while pb_width < width as f32{
-                        println!("pb_width : {}", pb_width);
+                    while pb_width < f_singraph_w{
                         pb.move_to(pb_width, 0.0); 
-                        pb.line_to(pb_width, height as f32);
+                        pb.line_to(pb_width, f_singraph_h);
                         pb_width += cell_width; 
                     }
 
                     let mut pb_height = cell_height; 
-                    while pb_height < height as f32{
+                    while pb_height < f_singraph_h{
                         pb.move_to(0.0 , pb_height); 
-                        pb.line_to(width as f32, pb_height);
+                        pb.line_to(f_singraph_w, pb_height);
                         pb_height += cell_height;
                     }
 
-                    pb.close();
                     pb.finish().unwrap()
                 };
 
                 let mut stroke = Stroke::default();
-                stroke.width = 6.0;
+                stroke.width = 1.0;
                 stroke.line_cap = LineCap::Round;
-                stroke.dash = StrokeDash::new(vec![20.0, 40.0], 0.0);
 
                 pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
 
                 self.ui.upgrade_in_event_loop(move |ui|{
-                    let image = Image::from_rgba8(pixel_buffer);
+                    let image = Image::from_rgba8_premultiplied(pixel_buffer);
                     ui.set_singraph(image); 
                 });
             }

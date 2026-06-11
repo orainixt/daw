@@ -1,7 +1,7 @@
 export global SystemService {
 	
-	in-out property <int> global_width : 1280;
-	in property <int> global_height : 720;
+	in-out property <int> global_width : 1980;
+	in property <int> global_height : 1080;
 	in-out property <length> global_width_length : global_width * 1px;
 	in-out property <length> global_height_length : global_height * 1px;	
 }
@@ -10,25 +10,29 @@ export global DAWService {
 	in property <float> name;
 	
 	// main daw 
-	in property <length> main_layout_height: SystemService.global_height * 0.3px; 
-	in property <length> main_layout_width: SystemService.global_width * 1px; 
+	in property <length> main_layout_height: SystemService.global_height_length; 
+	in property <length> main_layout_width: SystemService.global_width_length; 
 	
 	// effects 
-	in property <length> effects_box_height: main_layout_height * 0.9;
-	in property <length> effects_box_width: main_layout_width;
+	in property <length> effects_box_height: main_layout_height * 0.3;
+	in property <length> effects_box_width: main_layout_width ;
 
 	in property <length> wave_box_height: effects_box_height * 0.95;
 	in property <length> wave_box_width:  effects_box_width * 0.2;
 
-	in property <length> wave_popup_height: effects_box_height * 0.9; 
-	in property <length> wave_popup_width: effects_box_width * 0.2;
+	in property <length> wave_popup_height: wave_box_height; 
+	in property <length> wave_popup_width: wave_box_width;
 
-	in property <length> singraph_height: wave_box_height * 0.5;
-	in property <length> singraph_width : wave_box_width * 0.9;
+	in property <length> select_wave_height: wave_box_height * 0.2;
+	in property <length> select_wave_width: wave_box_width ;
+
+	in property <length> singraph_height: wave_box_height * 0.3;
+	in property <length> singraph_width : wave_box_width;
 	in property <float> f_singraph_height: singraph_height / 1px;
-	in property <float> f_singraph_width: wave_box_width / 1px;
+	in property <float> f_singraph_width: singraph_width / 1px;
 
 	in property <color> bg_main_color: #626c78;
 	in property <color> bg_secondary_color:  #8C92AC;
+	in property <color> border-color: #71797E; 
 }
 
