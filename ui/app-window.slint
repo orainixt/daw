@@ -1,10 +1,9 @@
 import { Button, VerticalBox, ListView,HorizontalBox ,Slider, StandardListView, ProgressIndicator } from "std-widgets.slint";
 
 
-import {SystemService} from "./utils.slint";
+import {SystemService, DAWService} from "./utils.slint";
 import {FilePlayer} from "./file-player.slint";
 import {DAW} from "./daw.slint";
-import { DAWService } from "utils.slint";
 
 //enum for the UI main parameters
 
@@ -24,6 +23,9 @@ export component AppWindow inherits Window {
 
 	min-width: SystemService.global_width_length; 
 	min-height: SystemService.global_height_length;
+
+	property <int> _w: SystemService.global_width;
+  property <length> _h: DAWService.main_layout_height;
 	
 	// TO PLAY FILES 
 	callback request-load-popup();
@@ -114,3 +116,5 @@ export component AppWindow inherits Window {
 	}
 }
 
+
+export {DAWService, SystemService}

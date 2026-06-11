@@ -1,10 +1,13 @@
 #![allow(unused)]
 
-use crate::{AppWindow, 
+use crate::{ 
+    AppWindow, 
     fileReader::FileReader, 
     play::Play, 
     volume::{Volume, SourceType},
-    wave::{Wave} 
+    wave::{Wave},
+    DAWService, 
+    SystemService,
 };  
 use log::debug;
 
@@ -13,7 +16,8 @@ use slint::{
     StandardListViewItem, 
     SharedPixelBuffer, 
     Rgba8Pixel, 
-    Image
+    Image, 
+    ComponentHandle,
 }; 
 
 use tiny_skia::{
@@ -512,38 +516,39 @@ impl UICommandsReceiver{
             UICommands::SendSinGraph(height, width) => {
                 
                 println!("send_sin_graph");
-                /**
-                if (height == 0.0 || width == 0.0){
-                    println!("singraph dimensions was 0");
-                    return
-                }; 
 
-
-                println!("f32 height : {}\nf32 width : {}", height, width);
-                let u_width = width as u32; 
-                let u_height = height as u32; 
+                let (sin_tx, sin_rx) = mpsc::channel();
                 
-                println!("u32 height : {}\nu32 width : {}", u_width, u_height);
+                let tx_cpy = sin_tx.clone(); 
+                self.ui.upgrade_in_event_loop(move |ui|{
+                    let daw = ui.global::<DAWService>(); 
+                    let _ = tx_cpy.send((daw.get_f_singraph_width(), daw.get_f_singraph_height()));
+                });
 
-                let mut pixel_buffer = SharedPixelBuffer::<Rgba8Pixel>::new(u_width as u32, u_height as u32);
+                let (f_singraph_w, f_singraph_h) = match sin_rx.recv() {
+                    Ok(dims) => dims,
+                    Err(_) => return,
+                };
+                
+                println!("h: {}\nw: {}", f_singraph_h, f_singraph_w);
 
-                let mut pixmap = PixmapMut::from_bytes(
-                    pixel_buffer.make_mut_bytes(), u_width, u_height
+                //cell and row count
+                let n = 200; 
+                let m = 300; 
+
+                let cell_width = (n as f32) / f_singraph_w ; 
+                let cell_height = (m as f32) / f_singraph_h; 
+
+
+                let mut pixel_buffer = SharedPixelBuffer::<Rgba8Pixel>::new(f_singraph_w as u32, f_singraph_h as u32);
+
+                let mut pixmap = tiny_skia::PixmapMut::from_bytes(
+                    pixel_buffer.make_mut_bytes(), f_singraph_w as u32, f_singraph_h as u32
                 ).unwrap();
-
-
-                pixmap.fill(tiny_skia::Color::BLACK);
-                
-                // number of cols in the checkered bg 
-                let n = 200;
-                // rows 
-                let m = 300;
-
-                let cell_width = width / (n as f32) ; 
-                let cell_height = height / (m as f32);
+                pixmap.fill(tiny_skia::Color::TRANSPARENT);
 
                 let mut paint = Paint::default();
-                paint.set_color_rgba8(50, 127, 150, 200);
+                paint.set_color_rgba8(0, 127, 0, 200);
                 paint.anti_alias = true;
 
                 let path = {
@@ -567,72 +572,12 @@ impl UICommandsReceiver{
                     pb.finish().unwrap()
                 };
 
+                let mut stroke = Stroke::default();
+                stroke.width = 6.0;
+                stroke.line_cap = LineCap::Round;
+                stroke.dash = StrokeDash::new(vec![20.0, 40.0], 0.0);
 
-                pixmap.fill_path(
-                    &path,
-                    &paint,
-                    FillRule::Winding,
-                    Transform::identity(),
-                    None,
-                );
-
-
-                self.ui.upgrade_in_event_loop(move |ui|{
-                    let image = Image::from_rgba8_premultiplied(pixel_buffer);
-                    ui.set_singraph(image); 
-                });
-                */
-
-                let mut pixel_buffer = SharedPixelBuffer::<Rgba8Pixel>::new(640, 480);
-
-                let mut pixmap = tiny_skia::PixmapMut::from_bytes(
-                    pixel_buffer.make_mut_bytes(), 640, 480
-                ).unwrap();
-                pixmap.fill(tiny_skia::Color::TRANSPARENT);
-
-                let mut paint1 = Paint::default();
-                paint1.set_color_rgba8(50, 127, 150, 200);
-                paint1.anti_alias = true;
-
-                let mut paint2 = Paint::default();
-                paint2.set_color_rgba8(220, 140, 75, 180);
-                paint2.anti_alias = false;
-
-                let path1 = {
-                    let mut pb = PathBuilder::new();
-                    pb.move_to(60.0, 60.0);
-                    pb.line_to(160.0, 940.0);
-                    pb.cubic_to(380.0, 840.0, 660.0, 800.0, 940.0, 800.0);
-                    pb.cubic_to(740.0, 460.0, 440.0, 160.0, 60.0, 60.0);
-                    pb.close();
-                    pb.finish().unwrap()
-                };
-
-                let path2 = {
-                    let mut pb = PathBuilder::new();
-                    pb.move_to(940.0, 60.0);
-                    pb.line_to(840.0, 940.0);
-                    pb.cubic_to(620.0, 840.0, 340.0, 800.0, 60.0, 800.0);
-                    pb.cubic_to(260.0, 460.0, 560.0, 160.0, 940.0, 60.0);
-                    pb.close();
-                    pb.finish().unwrap()
-                };
-
-                pixmap.fill_path(
-                    &path1,
-                    &paint1,
-                    FillRule::Winding,
-                    Transform::identity(),
-                    None,
-                );
-                pixmap.fill_path(
-                    &path2,
-                    &paint2,
-                    FillRule::Winding,
-                    Transform::identity(),
-                    None,
-                );
-
+                pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
 
                 self.ui.upgrade_in_event_loop(move |ui|{
                     let image = Image::from_rgba8(pixel_buffer);

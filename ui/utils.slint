@@ -1,4 +1,4 @@
-global SystemService {
+export global SystemService {
 	
 	in-out property <int> global_width : 1280;
 	in property <int> global_height : 720;
@@ -6,7 +6,7 @@ global SystemService {
 	in-out property <length> global_height_length : global_height * 1px;	
 }
 
-global DAWService {
+export global DAWService {
 	in property <float> name;
 	
 	// main daw 
@@ -32,4 +32,3 @@ global DAWService {
 	in property <color> bg_secondary_color:  #8C92AC;
 }
 
-export {SystemService, DAWService}
