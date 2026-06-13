@@ -5,6 +5,9 @@ use egui::{
 };
 use env_logger::fmt::style::Color;
 
+const GLOBAL_HEIGHT: i32 = 1920; 
+const GLOBAL_WIDTH : i32 = 1080; 
+
 pub struct AppBuild {
     name: String, 
 }
@@ -37,28 +40,34 @@ impl AppBuild {
     fn render_oscillator(&self, ui: &mut egui::Ui) {
 
         Frame::canvas(ui.style()).show(ui, |ui| {
+
+            ui.set_width(GLOBAL_WIDTH as f32);
+            ui.set_height(GLOBAL_HEIGHT as f32);
+
             ui.request_repaint();
             let time = ui.input(|i| i.time);
 
             //let desired_size = ui.available_size(); 
-            
-            let size = Vec2::new(700.0, 500.0);  
-            let (_id, rect) = ui.allocate_space(size);
-
-            let to_screen =
-                emath::RectTransform::from_to(Rect::from_x_y_ranges(0.0..=1.0, -1.0..=1.0), rect);
-
+ 
             let mut shapes = vec![];
 
             let n = 120; 
-            let amp : f64 = 2.0; 
-            let freq : f64 = 2.0; 
+            let amp : f64 = 30.0; 
+            let freq : f64 = 3.0;            
+            let size = Vec2::new(700.0, 500.0);  
 
-            
+            let (_id, rect) = ui.allocate_space(size);
+
+            let to_screen = emath::RectTransform::from_to(
+                Rect::from_x_y_ranges(0.0..=1.0, -amp as f32..=amp as f32), 
+                rect
+            );
+
+ 
             let points : Vec<Pos2> = (0..=n)
                 .map(|i| {
                     let t = i as f64 / n as f64;
-                    let y = amp * (t * std::f64::consts::TAU / 2.0).sin();
+                    let y = amp * (t * std::f64::consts::TAU * freq).sin();
                     to_screen * pos2(t as f32, y as f32) 
                 })
                 .collect() ; 
