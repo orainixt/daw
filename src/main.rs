@@ -4,25 +4,20 @@
 
 
 use std::env;
-use slint::{
-    ComponentHandle, 
-    PhysicalPosition, 
-    invoke_from_event_loop, 
-    platform::update_timers_and_animations, 
-    PhysicalSize,
-};
+
 
 use symphonia::core::errors;
 
 use audio_player::{
-    AppWindow, 
-    SystemService,
-    DAWService, 
-    fileReader, 
-    play::Play, 
-    slint_logic, 
-    volume::Volume, 
-    wave,
+    sound_design::{
+        file_reader, 
+        play::Play, 
+        volume::Volume, 
+        wave, 
+    }, 
+    ui::{
+        main_app::MainApp,
+    }
 };
 // crates 
 
@@ -37,7 +32,6 @@ use std::{
 };
 use log::{debug, error, log_enabled, info, Level};
 
-use crate::slint_logic::AppCommandSender;
 
 
 /// main function
@@ -52,10 +46,9 @@ use crate::slint_logic::AppCommandSender;
 /// @return : () or Box<dyn Error> Box uses dynamic dispatch for different types of Error
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let ui = AppWindow::new().unwrap();
 
     env_logger::init();
-
+   /** 
     let (tx, rx) = mpsc::channel::<slint_logic::UICommands>();
     info!(">> (main) multi-producer simple-consumer communication channel initialized");
     
@@ -63,41 +56,25 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
 
-    let ui_weak = ui.as_weak();
-    
-    let mut sender = slint_logic::AppCommandSender::new(ui_weak.clone(), tx.clone());
-    let mut receiver = slint_logic::AppCommandHandler::new(ui_weak); 
+
+//    let mut sender = slint_logic::AppCommandSender::new(ui_weak.clone(), tx.clone());
+//    let mut receiver = slint_logic::AppCommandHandler::new(ui_weak); 
 
     thread::spawn(move ||{
         while let Ok(msg) = rx.recv() {
             receiver.match_command(msg);
         }
     });     
-    
+    */
 
-    invoke_from_event_loop({
+    let options = eframe::NativeOptions::default(); 
 
-        let ui_handle = ui.as_weak(); 
-        move || {
-            if let Some(ui) = ui_handle.upgrade() {
+    eframe::run_native(
+        "DAW", 
+        options, 
+        Box::new(|_creation_ctx| Ok(Box::new(MainApp::default()))),
+    );
 
-                let system_service = ui.global::<SystemService>(); 
-                let width = system_service.get_global_width(); 
-                let height = system_service.get_global_height();
-
-                let size = PhysicalSize::new(width as u32, height as u32);
-
-                ui.window().set_size(size);
-                ui.window().set_fullscreen(true);
-            }
-        }
-        
-    }).map_err(|_| "Couldn't add task to event loop")?; 
-
-    info!(">> (main) Consumer is receiving inside it's thread"); 
-    sender.setup_callbacks();
-    info!(">> (main) Callbacks setted"); 
-    ui.run().unwrap();
     info!(">> (main) UI Launched");
     Ok(())
 }

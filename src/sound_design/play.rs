@@ -2,7 +2,7 @@ use atomic_float::AtomicF32;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 use crate::{
-    volume::Volume,
+    sound_design::volume::Volume,
 };
 
 use std::{

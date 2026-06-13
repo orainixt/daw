@@ -1,6 +1,9 @@
 use crate::{
-    fileReader::FileReader,
-    wave::Wave,
+
+    sound_design::{
+        file_reader::FileReader,
+        wave::Wave,
+    }
 };
 
 
