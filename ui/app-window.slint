@@ -1,7 +1,7 @@
 import { Button, VerticalBox, ListView,HorizontalBox ,Slider, StandardListView, ProgressIndicator } from "std-widgets.slint";
 
 
-import {SystemService, DAWService} from "./utils.slint";
+import {SystemService, DAWService, DAWLogic} from "./utils.slint";
 import {FilePlayer} from "./file-player.slint";
 import {DAW} from "./daw.slint";
 
@@ -17,13 +17,21 @@ import {DAW} from "./daw.slint";
 
 // main component 
 export component AppWindow inherits Window {
-
+	
+	/**
+	width: SystemService.global_width_length;
+	height: SystemService.global_height_length; 
+	*/
 	preferred-width: SystemService.global_width_length;
 	preferred-height: SystemService.global_height_length;
 
 	min-width: SystemService.global_width_length; 
 	min-height: SystemService.global_height_length;
-	
+
+	// UI 
+	callback request-close-app(); 
+
+
 	// TO PLAY FILES 
 	callback request-load-popup();
 	callback request-load-file();
@@ -37,7 +45,7 @@ export component AppWindow inherits Window {
 	callback request-stop();
 	callback request-change-volume(float);
 
-	callback request-close-app(); 
+
 
 	in property <[StandardListViewItem]> file_model;
 	in property <string> selected_file : "File selected : None";
@@ -49,13 +57,8 @@ export component AppWindow inherits Window {
 
 
 	// DAW 
-
-	callback request-add-sinwave();
-	callback request-singraph(float, float, string);
 	
 	in property <image> singraph;
-	in-out property <string> wave_selected;
-
 	// timer for the progress bar 
 	timer := Timer {
 		interval: 100ms; 
@@ -79,14 +82,17 @@ export component AppWindow inherits Window {
 				title:@tr("Import from PC"); 
 			}
 		}
+
+		Menu {
+			title:@tr("Exit"); 
+			MenuItem {
+				title:@tr("Exit app");
+				activated => {request-close-app()}
+			}
+		}
 	}
 	HorizontalLayout {
 		DAW{
-
-			from-root-request-add-sinwave => {root.request-add-sinwave()}
-			from-root-request-singraph => {
-				root.request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height, DAWService.selected_wave_str)
-			}
 
 			singraph: singraph;
 		}
@@ -113,4 +119,4 @@ export component AppWindow inherits Window {
 }
 
 
-export {DAWService, SystemService}
+export {DAWService, SystemService, DAWLogic}

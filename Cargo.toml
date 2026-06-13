@@ -15,6 +15,8 @@ native-dialog = "0.9.6"
 rfd = "0.17.2"
 slint = "1.16.0"
 slint-build = "1.16.0"
+slint-interpreter = "1.16.1"
+spin_on = "0.1.1"
 symphonia = { version = "0.5.5", features = ["mp3", "ogg", "wav"] }
 tiny-skia = "0.12.0"
 

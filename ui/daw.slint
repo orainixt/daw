@@ -1,20 +1,27 @@
-import { Button, VerticalBox, ListView,HorizontalBox ,Slider, StandardListView, ProgressIndicator } from "std-widgets.slint";
+import { 
+Button, 
+VerticalBox, 
+ListView,
+HorizontalBox ,
+Slider, 
+StandardListView,
+ProgressIndicator, ComboBox,
+} from "std-widgets.slint";
 
 
-import {DAWService, SystemService} from "./utils.slint";
+
+
+import {DAWService, SystemService, DAWLogic} from "./utils.slint";
 
 component Effects {
 	callback from-daw-request-add-sinwave();
-	callback from-daw-request-singraph(float, float, string);
 
 	in-out property <string> wave_selected :"No wave selected";
 	in property <string> wave_picture : "default";
 
-	in property <image> singraph; 
+	in property <string> button_str : "Select a wave";
 
-	pure function get-button-text() -> string {
-		return "Add" + wave_selected;
-	}
+	in property <image> singraph; 
 
 	VerticalLayout {
 
@@ -22,12 +29,14 @@ component Effects {
 		Rectangle {
 
 			border-width: 4pt;
+			border-color: DAWService.border-color; 
+
 			background: DAWService.bg_main_color;
 			clip: true;
 
 			VerticalBox {
 				x: 0; 
-				y:0;
+				y: 0;
 				height: DAWService.wave_box_height; 
 				width: DAWService.wave_box_width;
 				// Add wave
@@ -55,8 +64,9 @@ component Effects {
 
 								TouchArea {
 									clicked => {
-										DAWService.selected_wave_str = "SinWave";	
-										from-daw-request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height,DAWService.selected_wave_str);
+										DAWService.selected_wave_str = "SinWave";
+										DAWService.add_wave_button_str = "Add SinWave";
+										DAWLogic.request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height,DAWService.selected_wave_str);
 									}
 								}
 							}
@@ -121,9 +131,22 @@ component Effects {
 				Rectangle {
 					height: parent.height * 0.2;				
 					background: DAWService.bg_secondary_color;
-					Button {
-						text: get-button-text(); 
-						clicked => {from-daw-request-add-sinwave()}
+
+					HorizontalBox {
+						Button {
+							text: DAWService.add_wave_button_str; 
+							clicked => {DAWLogic.request-add-sinwave-to-playlist()}
+						}
+						
+						ComboBox {
+							width: 50%; 
+							height: 100%;
+							//use callback to fill that 
+							model: [1,2,3,4,5];
+							current-value: "For input";
+
+							selected(current-value) => {}
+						}	
 					}
 				}
 				
@@ -133,44 +156,91 @@ component Effects {
 
 }
 
-component PlaylistBlock {
+component PlaylistBar{
+
+	in property <string> input_name: "none";
+
     VerticalLayout {
-			
+			Rectangle {
+				Text {
+					vertical-alignment: center; 
+					text: input_name;  
+				}
+			}
 		}
 }
 
 component PlaylistInput {
-	HorizontalBox {
-		// 
-		Rectangle {
-			width: 10%; 
-			height: 100%;
 
-			Text {
-				horizontal-alignment: left;
-				text: "Input " + DAWService.block_cpt; 
+	in property <int> input_nb;
+
+	HorizontalBox {
+
+		Rectangle {
+				
+			width: DAWService.input_box_width;
+			height: DAWService.input_box_height;
+
+			border-color: red;
+			border-width: 2pt;
+
+
+			HorizontalBox {
+				Rectangle {
+					width: 10%; 
+					height: 100%;
+
+					border-width: 4pt; 
+					border-color: black; 
+
+					Text {
+						horizontal-alignment: center;
+						text: "Input " + input_nb; 
+					}
+				} 
+				
+				VerticalBox {
+					width: 15%; 
+					height: 20%;
+					PlaylistBar {
+
+					}			
+				
+				}
 			}
+
 		}
 	}
 }
 
 component Playlist {
-
-	init => {
-		DAWService.block_cpt += 1; 
-	}
 	
-	VerticalLayout {
-		PlaylistInput {
+	VerticalBox {
+
+		height: DAWService.playlist_box_height; 
+		width: DAWService.playlist_box_width; 
+		
+		x: 0; 
+		Rectangle {
+			clip: true;
+			width: 100%; 
+			height: 100%;
+
+			border-color: DAWService.border-color; 
+			border-width: 6pt; 
+
+			for i in 10 :
+				PlaylistInput{
+					y: DAWService.input_box_height * i;
+					input_nb: i+1;
+				}	
 		}
-		PlaylistInput {}
+		
 	}	
 
 }
 
 component DAW{
-	callback from-root-request-add-sinwave();
-	callback from-root-request-singraph(float, float, string);
 
 	in property <image> singraph;
 	in-out property <string> wave_selected;
@@ -184,11 +254,6 @@ component DAW{
 		Effects {
 			height: DAWService.effects_box_height; 
 			width: DAWService.effects_box_width;
-
-			from-daw-request-add-sinwave => {from-root-request-add-sinwave()}
-			from-daw-request-singraph => {
-				from-root-request-singraph(DAWService.f_singraph_width, DAWService.f_singraph_height, DAWService.selected_wave_str)
-			}
 		
 			wave_selected: wave_selected; 
 			singraph: singraph; 

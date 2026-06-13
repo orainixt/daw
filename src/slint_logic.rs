@@ -8,6 +8,7 @@ use crate::{
     wave::{Wave},
     DAWService, 
     SystemService,
+    DAWLogic,
     slint_utils::SlintUtils,
 };  
 use log::debug;
@@ -27,7 +28,7 @@ use tiny_skia::{
     Pixmap, 
     Paint,
     FillRule,
-    Transform, 
+    Transform,
     PixmapMut,
     Stroke,
     StrokeDash, 
@@ -49,7 +50,7 @@ use std::{
 };
 
 /// Enum of the differents commands send by the UI callbacks (@see
-/// UICommandsSender::setup_callbacks())
+/// AppCommandSender::setup_callbacks())
 #[derive(Debug)]
 pub enum UICommands{
     SwitchPlayMode(),
@@ -60,7 +61,7 @@ pub enum UICommands{
     ImportFile(),
     UpdateProgressBar(),
     StopSamples(),
-    SendSinWave(),
+    AddSinWave(),
     SendSinGraph(f32, f32, SharedString),
     Quit(),
 
@@ -76,16 +77,16 @@ pub enum UICommands{
 /// [^note]: A Weak reference does not know if the Application is still running.
 /// It implements Clone traits, allowing us to give a reference to this structure
 /// When something needs to be done or change on the UI, this reference is upgraded and the instruction is sent
-/// through a buffered cannal (@see `slint::upgrade_in_event_loop()` & `slint::invoke_from_event_loop()`, but I'll talk more about it in UICommandsReceiver::match_command()) 
-pub struct UICommandsSender{
+/// through a buffered cannal (@see `slint::upgrade_in_event_loop()` & `slint::invoke_from_event_loop()`, but I'll talk more about it in AppCommandHandler::match_command()) 
+pub struct AppCommandSender{
     ui: slint::Weak<AppWindow>, 
     tx: mpsc::Sender<UICommands>,
 } 
 
-/// Implementation of the struct UICommandsSender
-impl UICommandsSender{
+/// Implementation of the struct AppCommandSender
+impl AppCommandSender{
     
-    /// UICommandsReceiver constructor 
+    /// AppCommandHandler constructor 
     ///
     /// # Arguments : 
     ///
@@ -93,7 +94,7 @@ impl UICommandsSender{
     /// * `tx` : Clone of the `mpsc::Sender`
     ///
     /// # Returns :  
-    /// * `UICommandsSender`
+    /// * `AppCommandSender`
     ///
     /// # Exemple : 
     /// ```ignore
@@ -104,7 +105,7 @@ impl UICommandsSender{
     ///
     /// let ui = AppWindow::new().unwrap();
     /// let ui_weak = ui.as_weak();
-    /// let mut sender = slint_logic::UICommandsSender::new(ui_weak.clone(), tx.clone());
+    /// let mut sender = slint_logic::AppCommandSender::new(ui_weak.clone(), tx.clone());
     /// ```
     ///
     pub fn new(ui : slint::Weak<AppWindow>, tx: mpsc::Sender<UICommands>) -> Self{
@@ -132,7 +133,7 @@ impl UICommandsSender{
     /// # use Audio_Player::{AppWindow, slint_logic};
     /// let ui = AppWindow::new().unwrap();
     /// let ui_weak = ui.as_weak();
-    /// let mut sender = slint_logic::UICommandsSender::new(ui_weak.clone(), tx.clone());
+    /// let mut sender = slint_logic::AppCommandSender::new(ui_weak.clone(), tx.clone());
     /// sender.setup_callbacks();
     /// ```
     ///
@@ -194,21 +195,28 @@ impl UICommandsSender{
                 tx_cpy.send(UICommands::ChangeVolume(value));
             });
 
-            let tx_cpy = self.tx.clone();
-            ui.on_request_add_sinwave(move || {
-                tx_cpy.send(UICommands::SendSinWave());
-            });
 
-            let tx_cpy = self.tx.clone();
-            ui.on_request_singraph(move |height, width, wave| {
-                println!("send order");
-                tx_cpy.send(UICommands::SendSinGraph(height, width, wave)); 
-            });
             
             let tx_cpy = self.tx.clone();
             ui.on_request_close_app(move ||{
                 tx_cpy.send(UICommands::Quit());
             });
+
+            // Slint global functions
+
+            let daw_functions = ui.global::<DAWLogic>(); 
+
+            let tx_cpy = self.tx.clone();
+            daw_functions.on_request_singraph(move |height, width, wave| {
+                tx_cpy.send(UICommands::SendSinGraph(height, width, wave)); 
+            });
+
+            let tx_cpy = self.tx.clone();
+            daw_functions.on_request_add_sinwave_to_playlist(move || {
+                tx_cpy.send(UICommands::AddSinWave());
+            });
+
+
         }
     }
 
@@ -231,20 +239,20 @@ impl UICommandsSender{
 /// which is usefull to avoid ownership problems (especially when using references inside structures).
 /// * `is_playing` : `bool` is true when the stream is playing, false otherwise. 
 /// * `nb_samples` : `Option<Arc<AtomicU64>>` is a thread-safe reference pointer created when the
-/// FileReader object is created. It's then cloned, and give to UICommandsReceiver for the progress
+/// FileReader object is created. It's then cloned, and give to AppCommandHandler for the progress
 /// bar calculs. `AtomicU64` is better (simpler) than `Mutex` but only for u64 type. 
 /// * `total_samples` : `Arc<Option<u64>>` is a thread-safe reference pointer created when the
-/// FileReader is created. It's then cloned and give to UICommandsReceiver, again for the progress
+/// FileReader is created. It's then cloned and give to AppCommandHandler, again for the progress
 /// bar. This is not a Mutex of any type because this value does not change. 
 ///
 /// # Exemple :
 /// let ui_weak = ui.as_weak();
-/// let mut receiver = slint_logic::UICommandsReceiver::new(ui_weak); 
+/// let mut receiver = slint_logic::AppCommandHandler::new(ui_weak); 
 /// 
 /// [^note]: A Weak reference does not know if the Application is still running.
 /// It implements Clone traits, allowing us to give a reference to this structure
-/// When something needs to be done or change on the UI, this reference is upgraded and the instruction is sent via Slint functions (see `UICommandsReceiver::match_function()`)
-pub struct UICommandsReceiver{
+/// When something needs to be done or change on the UI, this reference is upgraded and the instruction is sent via Slint functions (see `AppCommandHandler::match_function()`)
+pub struct AppCommandHandler{
     files: Vec<String>, // new at creation, filled when fetch_directory is called. this must ensure
     // that it's defined when the user select an item from the list (because the popup automatically
     // call fetch_directory)
@@ -258,10 +266,10 @@ pub struct UICommandsReceiver{
     creating_sinwave: String,
 }
 
-/// Implementation of the UICommandsReceiver structure
-impl UICommandsReceiver{
+/// Implementation of the AppCommandHandler structure
+impl AppCommandHandler{
     
-    /// UICommandsReceiver constructor.
+    /// AppCommandHandler constructor.
     ///
     /// # Arguments:
     ///
@@ -276,19 +284,19 @@ impl UICommandsReceiver{
     /// * `volume_handle` : `None` until the user selects a song.
     /// 
     ///
-    /// # Returns : `UICommandsReceiver` (Self)
+    /// # Returns : `AppCommandHandler` (Self)
     ///
     /// # Exemple : 
     /// ```ignore
     /// # use Audio_Player::{AppWindow, slint_logic};
     /// let ui = AppWindow::new().unwrap();
     /// let ui_weak = ui.as_weak();
-    /// let mut receiver = slint_logic::UICommandsReceiver::new(ui_weak); 
+    /// let mut receiver = slint_logic::AppCommandHandler::new(ui_weak); 
     /// ```
     ///
     /// [^note]: A Weak reference does not know if the Application is still running.
     /// It implements Clone traits, allowing us to give a reference to this structure
-    /// When something needs to be done or change on the UI, this reference is upgraded and the instruction is sent via Slint functions (see `UICommandsReceiver::match_function()`)
+    /// When something needs to be done or change on the UI, this reference is upgraded and the instruction is sent via Slint functions (see `AppCommandHandler::match_function()`)
     pub fn new(ui: slint::Weak<AppWindow>) -> Self{
         Self {
             files: vec![],
@@ -356,7 +364,7 @@ impl UICommandsReceiver{
     ///
     /// let ui = AppWindow::new().unwrap();
     /// let ui_weak = ui.as_weak();
-    /// let mut receiver = slint_logic::UICommandsReceiver::new(ui_weak);
+    /// let mut receiver = slint_logic::AppCommandHandler::new(ui_weak);
     ///
     /// // Here the receiver is polling until the application is stopped
     /// thread::spawn(move ||{
@@ -504,15 +512,15 @@ impl UICommandsReceiver{
                 }
             }
 
-            UICommands::SendSinWave() => {
-                let wave = Wave::new(0.5, 440.0, 0.0); 
-                let source = SourceType::Oscillator(wave); 
-                let volume = Volume::new(source,0.5); 
-                self.file_player = Some(Play::new(volume));
+            UICommands::AddSinWave() => {
 
+                /**
                 if let Some(file_p) = self.file_player.as_mut() {
                     file_p.play_samples();
                 }
+                */ 
+                println!("addsinwave");
+ 
             }
 
             UICommands::SendSinGraph(height, width, wave) => {
@@ -554,7 +562,7 @@ impl UICommandsReceiver{
         
     }
     
-    /// Method called in UICommandsReceiver::match_command
+    /// Method called in AppCommandHandler::match_command
     /// 
     /// # Arguments : 
     /// * `dir` : Path reference indicates the directory to fetch 
@@ -619,6 +627,24 @@ impl UICommandsReceiver{
 
 }
 
+struct AppState {
+    lplayer: Vec<Play>, 
+}
+
+impl AppState {
+    fn create_wave(&mut self) {
+
+        let wave = Wave::new(0.5, 440.0, 0.0); 
+        let source = SourceType::Oscillator(wave); 
+        let volume = Volume::new(source,0.5); 
+
+        if let file_player = Some(Play::new(volume)) {
+           self.lplayer.push(file_player.expect("tf")); 
+        }
+
+
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -658,7 +684,7 @@ mod tests {
     #[test]
     fn test_init_receiver() {
         let (ui_weak, _, _rx) = setup(); 
-        let receiver = UICommandsReceiver::new(ui_weak);
+        let receiver = AppCommandHandler::new(ui_weak);
         assert!(receiver.files.is_empty());
         assert!(receiver.selected_file.is_empty());
         assert!(receiver.file_player.is_none()); 
@@ -675,7 +701,7 @@ mod tests {
     fn test_fetch_directory() {
         
         let (ui_weak, _, _rx) = setup(); 
-        let mut receiver = slint_logic::UICommandsReceiver::new(ui_weak);
+        let mut receiver = slint_logic::AppCommandHandler::new(ui_weak);
 
         let test_dir = Path::new("./test_dir"); 
         fs::create_dir(test_dir);

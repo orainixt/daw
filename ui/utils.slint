@@ -1,6 +1,6 @@
 export global SystemService {
 	
-	in-out property <int> global_width : 1980;
+	in-out property <int> global_width : 1920;
 	in property <int> global_height : 1080;
 	in-out property <length> global_width_length : global_width * 1px;
 	in-out property <length> global_height_length : global_height * 1px;	
@@ -34,10 +34,17 @@ export global DAWService {
 	in property <float> f_singraph_width: singraph_width / 1px;
 
 	in-out property <string> selected_wave_str;
+	in-out property <string> add_wave_button_str: "First select a wave";
 
 
 	//Playlist 
 	in-out property <int> block_cpt;
+
+	in property <length> playlist_box_height: main_layout_height * 0.7;
+	in property <length> playlist_box_width: main_layout_width * 0.99;
+
+	in property <length> input_box_height: playlist_box_height * 0.1;
+	in property <length> input_box_width: playlist_box_width;
 
 
 
@@ -47,3 +54,9 @@ export global DAWService {
 	in property <color> border-color: #71797E;
 }
 
+export global DAWLogic {
+
+	in property <int> name;
+	callback request-singraph(float, float, string);
+	callback request-add-sinwave-to-playlist();
+}

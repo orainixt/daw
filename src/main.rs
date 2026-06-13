@@ -5,19 +5,24 @@
 
 use std::env;
 use slint::{
-    platform::update_timers_and_animations,
     ComponentHandle, 
+    PhysicalPosition, 
+    invoke_from_event_loop, 
+    platform::update_timers_and_animations, 
+    PhysicalSize,
 };
 
 use symphonia::core::errors;
 
 use audio_player::{
-    play::Play, 
-    volume::Volume, 
-    slint_logic, 
+    AppWindow, 
+    SystemService,
+    DAWService, 
     fileReader, 
+    play::Play, 
+    slint_logic, 
+    volume::Volume, 
     wave,
-    AppWindow,
 };
 // crates 
 
@@ -32,7 +37,7 @@ use std::{
 };
 use log::{debug, error, log_enabled, info, Level};
 
-use crate::slint_logic::UICommandsReceiver;
+use crate::slint_logic::AppCommandSender;
 
 
 /// main function
@@ -53,17 +58,41 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (tx, rx) = mpsc::channel::<slint_logic::UICommands>();
     info!(">> (main) multi-producer simple-consumer communication channel initialized");
+    
+    let tx_cpy = tx.clone(); 
+
+
 
     let ui_weak = ui.as_weak();
     
-    let mut sender = slint_logic::UICommandsSender::new(ui_weak.clone(), tx.clone());
-    let mut receiver = slint_logic::UICommandsReceiver::new(ui_weak); 
+    let mut sender = slint_logic::AppCommandSender::new(ui_weak.clone(), tx.clone());
+    let mut receiver = slint_logic::AppCommandHandler::new(ui_weak); 
 
     thread::spawn(move ||{
         while let Ok(msg) = rx.recv() {
             receiver.match_command(msg);
         }
     });     
+    
+
+    invoke_from_event_loop({
+
+        let ui_handle = ui.as_weak(); 
+        move || {
+            if let Some(ui) = ui_handle.upgrade() {
+
+                let system_service = ui.global::<SystemService>(); 
+                let width = system_service.get_global_width(); 
+                let height = system_service.get_global_height();
+
+                let size = PhysicalSize::new(width as u32, height as u32);
+
+                ui.window().set_size(size);
+                ui.window().set_fullscreen(true);
+            }
+        }
+        
+    }).map_err(|_| "Couldn't add task to event loop")?; 
 
     info!(">> (main) Consumer is receiving inside it's thread"); 
     sender.setup_callbacks();
