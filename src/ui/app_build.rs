@@ -5,8 +5,11 @@ use egui::{
 };
 use env_logger::fmt::style::Color;
 
-const GLOBAL_HEIGHT: i32 = 1920; 
-const GLOBAL_WIDTH : i32 = 1080; 
+use crate::{
+    ui::{
+        consts,
+    }
+};
 
 pub struct AppBuild {
     name: String, 
@@ -41,10 +44,12 @@ impl AppBuild {
 
         Frame::canvas(ui.style()).show(ui, |ui| {
 
-            ui.set_width(GLOBAL_WIDTH as f32);
-            ui.set_height(GLOBAL_HEIGHT as f32);
+            ui.set_width(consts::F_OSCILLATOR_W);
+            ui.set_height(consts::F_OSCILLATOR_H);
 
             ui.request_repaint();
+            
+
             let time = ui.input(|i| i.time);
 
             //let desired_size = ui.available_size(); 
@@ -54,9 +59,11 @@ impl AppBuild {
             let n = 120; 
             let amp : f64 = 30.0; 
             let freq : f64 = 3.0;            
-            let size = Vec2::new(700.0, 500.0);  
+            let size = Vec2::new(consts::F_OSCILLATOR_W, consts::F_OSCILLATOR_H);  
 
             let (_id, rect) = ui.allocate_space(size);
+
+            ui.set_clip_rect(rect);
 
             let to_screen = emath::RectTransform::from_to(
                 Rect::from_x_y_ranges(0.0..=1.0, -amp as f32..=amp as f32), 
@@ -88,6 +95,8 @@ impl AppBuild {
     fn wave_select(&self, ui: &mut egui::Ui) {
         ui.vertical(|ui| {
             ui.label("Select a wave");
+            ui.set_width(consts::F_WAVE_W);
+            ui.set_height(consts::F_WAVE_H);
 
             self.render_oscillator(ui);
         });
@@ -95,8 +104,10 @@ impl AppBuild {
 
     pub fn effects(&self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-
+            ui.set_width(consts::F_EFFECTS_W);
+            ui.set_height(consts::F_EFFECTS_H);
             self.wave_select(ui);
         }); 
     }
+
 }
