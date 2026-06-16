@@ -50,6 +50,9 @@ impl DancingWaves {
 
 
         Frame::canvas(ui.style()).show(ui, |ui| {
+            
+            ui.request_repaint();
+            let time = ui.input(|i| i.time);
 
 
             let size = ui.available_width() * vec2(1.0, 0.35); 
@@ -64,6 +67,8 @@ impl DancingWaves {
 
             for track in &mut self.ltracks {
                 if let Some(freq) = track.next() {
+
+                    println!("{}",freq);
                     let mode = remap(freq, 0.0..=20000.0, 1.0..=10.0) as f64; 
                     
                     let n = track.freq_buf().len();
@@ -72,13 +77,15 @@ impl DancingWaves {
 
                     self.points.clear();
 
+                    let speed = 1.5 ;
+
                     for i in 0..n {
                         let t = i as f64 / (n as f64) ; 
                         
-                        let freq = track.freq_buf()[i]; 
-
-                        let y = remap(freq, 0.0..=20000.0, 0.0..=1.0); 
-
+                        let amp = (time * speed * mode).sin() / mode; 
+                        let y = amp * (t * std::f64::consts::TAU / 2.0 * mode).sin(); 
+                        
+                        
                         self.points.push(to_screen * pos2(t as f32, y as f32));
                     }
 

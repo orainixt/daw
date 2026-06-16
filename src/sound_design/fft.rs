@@ -44,7 +44,9 @@ impl FFTUtils {
         // now only the dominant is useful 
         // max_by takes 2 tuples (index, magnitude) and returns the maximum. 
         // index is the value of the frequency : index * sample_rate / frame_size 
-        magn 
+        // only len/2 cuz the second part of the sprect is a mirror of the first
+
+        magn[1..magn.len()/2] 
             .iter()
             .enumerate()
             .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())

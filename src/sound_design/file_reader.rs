@@ -28,7 +28,8 @@ pub struct FileReader{
     sample_buf: SampleBuffer<f32>,
     total_samples: Arc<Option<u64>>,
     nb_samples: Arc<AtomicU64>,
-    index : u64, 
+    index : u64,
+    sample_rate: f32, 
 }
 
 /// Iterator for FileReader to load samples in order one by one. 
@@ -164,6 +165,7 @@ impl FileReader {
             sample_buf: sample_buf,
             nb_samples: Arc::new(AtomicU64::new(0)),
             index: 0,
+            sample_rate: spec.rate as f32, 
         })              
     }
     

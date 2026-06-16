@@ -16,7 +16,7 @@ use audio_player::{
         wave, 
     }, 
     ui::{
-        main_app::MainApp,
+        dancing_wave::{DancingWaves}, main_app::MainApp
     }
 };
 // crates 
@@ -66,16 +66,29 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });     
     */
+    let files_list = [
+        "DRUMS1.mp3", 
+
+    ]; 
+
+    let lfiles : Vec<String> = files_list
+        .iter()
+        .map(|i| format!("chill2/{}", i))
+        .collect();
+    
+    //this should be fetced by symphonia in file_reader
+    let sample_rate = 48000.0; 
 
     let options = eframe::NativeOptions::default(); 
 
     eframe::run_native(
         "DAW", 
         options, 
-        Box::new(|_creation_ctx| Ok(Box::new(MainApp::default()))),
+        Box::new(|_creation_ctx| Ok(Box::new(MainApp::new(String::from("daw"),lfiles, sample_rate)))),
     );
 
     info!(">> (main) UI Launched");
+
     Ok(())
 }
 
