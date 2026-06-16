@@ -1,4 +1,5 @@
 pub mod wave;
+pub mod render_song;
 pub mod file_reader;
 pub mod play;
 pub mod volume;

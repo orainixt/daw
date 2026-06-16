@@ -1,7 +1,8 @@
+#![allow(unused_imports)]
+
 
 use std::f32::consts::PI;
 
-use log::debug;
 
 const BUF_SIZE: usize = 256; 
 const SAMPLE_RATE: i32= 44100; 
@@ -9,9 +10,7 @@ const SAMPLE_RATE: i32= 44100;
 #[derive(Debug)]
 pub struct Wave {
     amp: f32, // amplitude
-    sample_nb: i32, // time in secods 
     ang_freq: f32, 
-    ord_freq: f32, 
     phase: f32,
 
     sample_buf: [f32; 256],
@@ -42,9 +41,7 @@ impl Wave {
     pub fn new(amp: f32, ord_freq: f32, phase: f32)-> Self {
         Self {
             amp: amp, 
-            sample_nb: 0, 
             ang_freq: 2.0 * PI * ord_freq, 
-            ord_freq: ord_freq, 
             phase: phase,
             sample_buf: [0.0;256], 
             index: 0,

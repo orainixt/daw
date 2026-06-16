@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 use eframe::egui; 
 
 use egui::{
@@ -12,14 +14,12 @@ use crate::{
 };
 
 pub struct AppBuild {
-    name: String, 
 }
 
 impl AppBuild {
 
     pub fn new() -> Self {
         Self {
-            name: String::from("AppBuilder"),
         }
     } 
 

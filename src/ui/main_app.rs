@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 use eframe::{App, egui::Ui};
 use egui::{
     Color32, Key::D, Rect, Vec2, containers::Frame, emath::{self, Pos2}, epaint::{self, PathStroke}, pos2, widgets 
@@ -10,9 +12,6 @@ use crate::ui::{
 
 
 pub struct MainApp {
-    name: String, 
-    value: f32, 
-    label: String, 
     app_builder: AppBuild,
     dancing: DancingWaves,
 }
@@ -20,11 +19,8 @@ pub struct MainApp {
 impl Default for MainApp {
     fn default() -> Self {
         Self {
-            name: String::from("DAW"), 
-            value: 0.0, 
-            label: String::from("uiii"), 
             app_builder: AppBuild::new(),
-            dancing: DancingWaves::new(vec![String::new()], 48000.0),
+            dancing: DancingWaves::new(vec![String::new()], 48000.0, 2048),
             
         }
     }
@@ -32,13 +28,10 @@ impl Default for MainApp {
 
 
 impl MainApp {
-    pub fn new(name: String, lfiles: Vec<String>, sample_rate:f32) -> Self {
+    pub fn new(lfiles: Vec<String>, sample_rate:f32, size: usize) -> Self {
         Self {
-            name: name, 
-            value: 0.0, 
-            label: String::from("uiii"), 
             app_builder: AppBuild::new(), 
-            dancing: DancingWaves::new(lfiles, sample_rate), 
+            dancing: DancingWaves::new(lfiles, sample_rate, size), 
         }
             
     }

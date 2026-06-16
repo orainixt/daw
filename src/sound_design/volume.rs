@@ -26,7 +26,7 @@ impl Iterator for SourceType {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            SourceType::File(fileReader) => fileReader.next(),
+            SourceType::File(file_reader) => file_reader.next(),
             SourceType::Oscillator(wave) => wave.next(),
         }
     }
