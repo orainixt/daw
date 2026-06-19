@@ -20,7 +20,7 @@ impl Default for MainApp {
     fn default() -> Self {
         Self {
             app_builder: AppBuild::new(),
-            dancing: DancingWaves::new(vec![String::new()], 48000.0, 2048),
+            dancing: DancingWaves::new(vec![String::new()], 48000.0, 2048, String::from("default.mp3")),
             
         }
     }
@@ -28,10 +28,10 @@ impl Default for MainApp {
 
 
 impl MainApp {
-    pub fn new(lfiles: Vec<String>, sample_rate:f32, size: usize) -> Self {
+    pub fn new(lfiles: Vec<String>, sample_rate:f32, size: usize, name: String) -> Self {
         Self {
             app_builder: AppBuild::new(), 
-            dancing: DancingWaves::new(lfiles, sample_rate, size), 
+            dancing: DancingWaves::new(lfiles, sample_rate, size, name), 
         }
             
     }

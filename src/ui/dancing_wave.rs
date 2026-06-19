@@ -1,6 +1,5 @@
 #![allow(unused_imports)]
 
-use dasp::sample;
 use egui::{
     Color32, Pos2, Rect, Ui,
     containers::{Frame, Window},
@@ -9,17 +8,34 @@ use egui::{
      lerp, pos2, remap, vec2,
 };
 
+use std::{
+    fs::{File}  
+};
 
 use crate::sound_design::{
-        render_song::RenderSong, track_wave::FrameData 
+        render_song::{self, DancingWaveUtils}, track_wave::FrameData 
 
     };
 
 
+
+/** 
+* In the end it's not useful (for now)
+trait ReadAtPosition {
+    fn read_at_position(&mut self, pos: u64, buffer: &mut [u8]) -> std::io::Result<()>;
+}
+
+impl ReadAtPosition for File {
+    fn read_at_position(&mut self, pos: u64, buffer: &mut [u8]) -> std::io::Result<()> {
+        self.seek(SeekFrom::Start(pos))?;
+        self.read_exact(buffer)
+    }
+}
+*/
 pub struct DancingWaves {
     
     magnitude: Vec<f32>,
-    render: RenderSong,
+    render: DancingWaveUtils,
     fps: f64,
     nb_tracks: usize,
     frame_index: usize,
@@ -27,18 +43,27 @@ pub struct DancingWaves {
 
 impl DancingWaves {
 
-    pub fn new(lfiles: Vec<String>, sample_rate: f32, size: usize) -> Self {
+    pub fn new(lfiles: Vec<String>, sample_rate: f32, size: usize, name: String) -> Self {
         //hardcoded values to test
         let nb_tracks = lfiles.len();
-        let mut render = RenderSong::new(nb_tracks as u32, size, lfiles.clone(), sample_rate);
+        let mut render = DancingWaveUtils::new(nb_tracks as u32, size, lfiles.clone(), sample_rate, name.clone());
+        
+
+        // This is a bit silly to do
+        // (render song in a file then read directly this file) 
+        render.render_song();
         
         Self {
-            magnitude: render.render_song(),
+            magnitude: render.parse_song(),
             fps: (sample_rate as f64) / (size as f64),
             nb_tracks: nb_tracks,
             render: render,
             frame_index: 0,
         }
+    }
+
+    fn prepare_for_file(&self) {
+        todo!();
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
@@ -63,7 +88,7 @@ impl DancingWaves {
                 rect
             ); 
 
-            let curr_frame = (time * self.fps * 10.0) as usize;
+            let curr_frame = (time * self.fps) as usize;
             /**
             let curr_frame = self.frame_index; 
             self.frame_index += 1;
@@ -74,10 +99,10 @@ impl DancingWaves {
             let start = curr_frame * self.nb_tracks * size / 2; 
             let end = start + (self.nb_tracks * size / 2); 
 
-            if self.magnitude.is_empty() || end > self.magnitude.len() { return; }
+            if end > self.magnitude.len() { return; }
 
             let curr_frame_data = FrameData::new(&self.magnitude[start..end]);
-
+            
 
             let mut shapes = vec![]; 
 

@@ -66,14 +66,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });     
     */
-    let files_list = [
-        "CHILL_FOR_VOCALS_REALBASS.wav" 
 
+
+    let song_name = String::from("deadbeef.txt"); 
+
+    let files_list = [
+        "What does a piccolo sound like (Ode to Joy).mp3"
     ]; 
 
     let lfiles : Vec<String> = files_list
         .iter()
-        .map(|i| format!("chill2/all_samples/{}", i))
+        .map(|i| format!("samples/{}", i))
         .collect();
     
     //this should be fetced by symphonia in file_reader
@@ -85,7 +88,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     eframe::run_native(
         "DAW", 
         options, 
-        Box::new(|_creation_ctx| Ok(Box::new(MainApp::new(lfiles, sample_rate, fft_size)))),
+        Box::new(|_creation_ctx| Ok(Box::new(MainApp::new(lfiles, sample_rate, fft_size, song_name)))),
     );
 
     info!(">> (main) UI Launched");

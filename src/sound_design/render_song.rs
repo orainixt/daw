@@ -1,30 +1,66 @@
-use std::fs::File;
-
-use rustfft::{
-    num_complex::Complex,
+use std::{
+    fs,
+    fs::File,
+    io::{Write},
+    slice,
+    convert::TryInto,
 };
 
-use crate::sound_design::{fft::FFTUtils, file_reader::{self, FileReader}};
+use egui::debug_text::print;
+use format_bytes::format_bytes;
+
+use rustfft::{
+    num_complex::Complex, num_traits::float,
+};
+
+use crate::{
+    sound_design::{fft::FFTUtils, file_reader::{self, FileReader}}, 
+};
+
+use bytemuck::cast_slice;
 
 
+// might be over-engineered
+trait EndianRead{
+    fn read_be(input: &mut &[u8]) -> Self; 
+}
 
-pub struct RenderSong {
+macro_rules! impl_EndianRead_for_nums (( $($num:ident),*) => {
+    $(
+        impl EndianRead for $num {
+            fn read_be(input: &mut &[u8]) -> Self {
+                let (bytes, rest) = input.split_at(std::mem::size_of::<Self>()); 
+                *input = rest ; 
+                Self::from_be_bytes(bytes.try_into().unwrap())
+            }
+        }
+    )*
+});
+
+
+impl_EndianRead_for_nums!(f32);
+
+
+pub struct DancingWaveUtils {
     
     nb_tracks: u32, 
     size: usize, 
     ltracks : Vec<String>,
     fft: FFTUtils,
     fps: f32, 
-    max_amp : f32, 
+    max_amp : f32,
+    name: String
 }
 
-impl RenderSong {
+impl DancingWaveUtils {
 
     pub fn new(
         nb_tracks: u32, 
         size: usize, 
         ltracks: Vec<String>,
-        sample_rate: f32) -> Self { 
+        sample_rate: f32,
+        name: String) -> Self { 
+
 
         Self {
             nb_tracks: nb_tracks,
@@ -33,12 +69,27 @@ impl RenderSong {
             fft: FFTUtils::new(size),
             fps: sample_rate / (size as f32),
             max_amp: 1.0, 
+            name: name,
+        }
+    }
+    
+    fn f32_to_u8<'a>(&self, lfoats : &'a [f32]) -> &[u8] {
+        unsafe {
+            slice::from_raw_parts(lfoats.as_ptr() as *const _ , lfoats.len() * 4)
         }
     }
 
-    pub fn render_song(&mut self) -> Vec<f32> {
+    pub fn u8_to_f32<'a>(&self, lunsigneds: &'a[u8]) -> &[f32]{
+        unsafe {
+            slice::from_raw_parts(lunsigneds.as_ptr() as *const _, lunsigneds.len() / 4)
+        }
+    }
 
 
+    pub fn render_song(&mut self) {
+        
+        let mut out_file = File::create(&self.name).expect("File can't be opened nor created") ;
+        
         let first_file_reader = FileReader::new(self.ltracks[0].clone()).expect("can't open file");
         let samples = (*first_file_reader.get_total_samples()).expect("can't get samples");
 
@@ -46,25 +97,59 @@ impl RenderSong {
 
         let total_samples = self.nb_tracks as usize * (total_frame as usize + 1) * (self.size as usize / 2);
 
+        let res = out_file.write_all(&format_bytes!(
+            b"[ metadata : [
+                name: {},
+                ]"
+            , "name".as_bytes()
+        ));
+
         let mut out_buf : Vec<f32> = vec![0.0 ; total_samples];
         let mut fft_buf: Vec<Complex<f32>> = vec![Complex{re: 0.0, im: 0.0} ; self.size as usize]; 
         
+        // need to use rayon to do that when multiple tracks
+
         for (idx, track) in self.ltracks.iter().enumerate() {
 
             let file_reader = FileReader::new(track.to_string()).expect("no file exists");
 
-
             self.fft.render_track(file_reader, idx, self.nb_tracks as usize, &mut fft_buf, &mut out_buf);
-        }
 
+        }
         let max = out_buf.iter().cloned().fold(f32::NAN, f32::max); 
         
         if self.max_amp < max {
             self.max_amp = max;
         }
+        
+        let buf : &[u8] = self.f32_to_u8(&out_buf);
+        
+        let _ = out_file.write_all(buf); 
+    
+    }
+
+    pub fn parse_song(&self) -> Vec<f32>{
+
+        let file_content = fs::read(&self.name).expect("couldn't read file");
+        let mut byte_content = &file_content[..]; 
+
+
+        // std::mem::size_of<T>() is evaluated at compile time
+        let total_samples = <f32 as EndianRead>::read_be(&mut byte_content) as usize;  
+        let mut out_buf : Vec<f32> = vec![0.0 ; total_samples];
+
+
+        let to_read = std::mem::size_of::<f32>() * total_samples;
+        
+        //let total_frame = <f32 as EndianRead>::read_be(&mut byte_content) ; ; 
+
+        for _ in 0..to_read {
+            let sample = <f32 as EndianRead>::read_be(&mut byte_content) ; 
+            println!("{}", sample);
+        }   
 
         out_buf
-    
+
     }
 
     pub fn get_size(&self) -> usize {

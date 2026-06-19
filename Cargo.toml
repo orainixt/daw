@@ -7,6 +7,7 @@ authors = ["Soyah Amin <amin.soyah.etu@univ-lille.fr>","Sauvage Lucas <lucassauv
 
 [dependencies]
 atomic_float = "1.1.0"
+bytemuck = "1.25.0"
 cpal = "0.17.3"
 dasp = {version = "0.11.0" , features = ["signal"]}
 eframe = "0.34.3"
@@ -16,15 +17,11 @@ log = "0.4.29"
 native-dialog = "0.9.6"
 rfd = "0.17.2"
 rustfft = "6.4.1"
-slint = "1.16.0"
-slint-build = "1.16.0"
-slint-interpreter = "1.16.1"
 spin_on = "0.1.1"
 symphonia = { version = "0.5.5", features = ["mp3", "ogg", "wav"] }
 tiny-skia = "0.12.0"
-
-[build-dependencies]
-slint-build = "1.14.1"
+format-bytes = "0.3.0"
+slice = "0.0.4"
 
 [profile.release]
 codegen-units = 1

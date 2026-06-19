@@ -44,7 +44,6 @@ impl FFTUtils {
     }
 
     
-    /// This only render the dominant frequency 
     pub fn render_track(&self, mut file_reader: FileReader, track_index: usize, nb_tracks: usize, fft_buf: &mut [Complex<f32>], out_buf: &mut [f32]){
 
 
@@ -52,15 +51,17 @@ impl FFTUtils {
         let mut frame_cpt = 0; 
 
 
-        // this is bad and should be handled properly
 
         while let Some(sample) = file_reader.next() {
             samples.push(sample);
 
             if samples.len() == self.size {
+
                 let start = frame_cpt * nb_tracks * self.size / 2 + (track_index * self.size / 2); 
                 let end = start + self.size / 2; 
+
                 self.render_samples(&samples, fft_buf, &mut out_buf[start..end]);
+
                 samples.clear();
                 frame_cpt += 1; 
             }
