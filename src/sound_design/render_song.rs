@@ -27,7 +27,7 @@ macro_rules! impl_EndianRead_for_nums (( $($num:ident),*) => {
             fn read_be(input: &mut &[u8]) -> Self {
                 let (bytes, rest) = input.split_at(std::mem::size_of::<Self>()); 
                 *input = rest ; 
-                Self::from_be_bytes(bytes.try_into().unwrap())
+                Self::from_le_bytes(bytes.try_into().unwrap())
             }
         }
     )*
@@ -92,14 +92,16 @@ impl DancingWaveUtils {
         let total_frame = (samples + self.size as u64 - 1) / self.size as u64;
 
         let total_samples = self.nb_tracks as usize * (total_frame as usize + 1) * (self.size as usize / 2);
-        
+
+        info!("total sample (in render song) : {}", total_samples);
+ 
         let b_total_samples = &total_samples.to_le_bytes(); 
 
 
-        info!("{:#?}", b_total_samples);
-
-
-        let _res = out_file.write_all(&total_samples.to_ne_bytes());
+        info!("start{:#?}end", b_total_samples);
+        
+    
+        let _res = out_file.write_all(b_total_samples);
 
         let mut out_buf : Vec<f32> = vec![0.0 ; total_samples];
         let mut fft_buf: Vec<Complex<f32>> = vec![Complex{re: 0.0, im: 0.0} ; self.size as usize]; 
