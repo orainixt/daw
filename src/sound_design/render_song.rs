@@ -6,19 +6,15 @@ use std::{
     convert::TryInto,
 };
 
-use egui::debug_text::print;
 use format_bytes::format_bytes;
 
-use rustfft::{
-    num_complex::Complex, num_traits::float,
-};
+use rustfft::{num_complex::Complex, num_traits::ToBytes};
 
-use crate::{
-    sound_design::{fft::FFTUtils, file_reader::{self, FileReader}}, 
-};
+use crate::sound_design::{fft::FFTUtils, file_reader::FileReader};
 
-use bytemuck::cast_slice;
+use bytemuck;
 
+use log::{info};
 
 // might be over-engineered
 trait EndianRead{
@@ -38,7 +34,7 @@ macro_rules! impl_EndianRead_for_nums (( $($num:ident),*) => {
 });
 
 
-impl_EndianRead_for_nums!(f32);
+impl_EndianRead_for_nums!(f32, u64, usize);
 
 
 pub struct DancingWaveUtils {
@@ -96,13 +92,14 @@ impl DancingWaveUtils {
         let total_frame = (samples + self.size as u64 - 1) / self.size as u64;
 
         let total_samples = self.nb_tracks as usize * (total_frame as usize + 1) * (self.size as usize / 2);
+        
+        let b_total_samples = &total_samples.to_le_bytes(); 
 
-        let res = out_file.write_all(&format_bytes!(
-            b"[ metadata : [
-                name: {},
-                ]"
-            , "name".as_bytes()
-        ));
+
+        info!("{:#?}", b_total_samples);
+
+
+        let _res = out_file.write_all(&total_samples.to_ne_bytes());
 
         let mut out_buf : Vec<f32> = vec![0.0 ; total_samples];
         let mut fft_buf: Vec<Complex<f32>> = vec![Complex{re: 0.0, im: 0.0} ; self.size as usize]; 
@@ -129,23 +126,31 @@ impl DancingWaveUtils {
     }
 
     pub fn parse_song(&self) -> Vec<f32>{
-
+        
+        //info!("before file/buf content");
         let file_content = fs::read(&self.name).expect("couldn't read file");
         let mut byte_content = &file_content[..]; 
 
-
+        //info!("before total_samples");
         // std::mem::size_of<T>() is evaluated at compile time
-        let total_samples = <f32 as EndianRead>::read_be(&mut byte_content) as usize;  
-        let mut out_buf : Vec<f32> = vec![0.0 ; total_samples];
+        let total_samples = <usize as EndianRead>::read_be(&mut byte_content) as usize; 
+        
+        //info!("total_samples");
 
+        info!("{}", total_samples); 
+        info!("beofre out_buf");
+        let out_buf : Vec<f32> = vec![0.0 ; total_samples];
 
+        info!("before to_read");
         let to_read = std::mem::size_of::<f32>() * total_samples;
+
+        info!("the for loop is panicking");
         
         //let total_frame = <f32 as EndianRead>::read_be(&mut byte_content) ; ; 
 
         for _ in 0..to_read {
             let sample = <f32 as EndianRead>::read_be(&mut byte_content) ; 
-            println!("{}", sample);
+            info!("{}", sample);
         }   
 
         out_buf

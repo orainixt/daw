@@ -50,7 +50,7 @@ impl AppBuild {
             ui.request_repaint();
             
 
-            let time = ui.input(|i| i.time);
+            let _time = ui.input(|i| i.time);
 
             //let desired_size = ui.available_size(); 
  

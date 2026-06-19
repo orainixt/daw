@@ -48,10 +48,12 @@ impl DancingWaves {
         let nb_tracks = lfiles.len();
         let mut render = DancingWaveUtils::new(nb_tracks as u32, size, lfiles.clone(), sample_rate, name.clone());
         
-
+        println!("before render song");
         // This is a bit silly to do
         // (render song in a file then read directly this file) 
         render.render_song();
+
+        println!("before parse_song");
         
         Self {
             magnitude: render.parse_song(),
