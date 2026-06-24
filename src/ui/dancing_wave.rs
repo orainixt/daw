@@ -5,8 +5,9 @@ use egui::{
     containers::{Frame, Window},
     emath, epaint,
     epaint::PathStroke,
-     lerp, pos2, remap, vec2,
+    lerp, pos2, remap, vec2,
 };
+
 
 use log::{info};
 
@@ -132,7 +133,18 @@ impl DancingWaves {
                 
                 shapes.push(epaint::Shape::line(
                     points, 
-                    PathStroke::new(thickness, color),
+                    PathStroke::new_uv(thickness, move |rect, p| {
+                        let t = remap(p.x, rect.x_range(), -1.0..=1.0).abs();
+
+                        let center_color = Color32::from_hex("#5BCEFA").expect("color cant be created"); 
+                        let outer_color = Color32::from_hex("#F5A9B8").expect("color can't be created");
+
+                        Color32::from_rgb(
+                            lerp(center_color.r() as f32..=outer_color.r() as f32, t) as u8,
+                            lerp(center_color.g() as f32..=outer_color.g() as f32, t) as u8,
+                            lerp(center_color.b() as f32..=outer_color.b() as f32, t) as u8,
+                        )
+                    })
                 )); 
 
             }

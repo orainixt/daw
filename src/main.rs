@@ -71,7 +71,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let song_name = String::from("deadbeef.txt"); 
 
     let files_list = [
-        "Nirvana - Aneurysm - Guitars Only (Incesticide).mp3"
+        "Nirvana - Aneurysm - Guitars Only (Incesticide).mp3",
+        "DRUMS1.mp3"
     ]; 
 
     let lfiles : Vec<String> = files_list
