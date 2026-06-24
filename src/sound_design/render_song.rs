@@ -1,6 +1,6 @@
 use std::{
     fs,
-    fs::File,
+    fs::{File,OpenOptions},
     io::{Write},
     slice,
     convert::TryInto,
@@ -18,16 +18,16 @@ use log::{info};
 
 // might be over-engineered
 trait EndianRead{
-    fn read_be(input: &mut &[u8]) -> Self; 
+    fn read_ne(input: &mut &[u8]) -> Self; 
 }
 
 macro_rules! impl_EndianRead_for_nums (( $($num:ident),*) => {
     $(
         impl EndianRead for $num {
-            fn read_be(input: &mut &[u8]) -> Self {
+            fn read_ne(input: &mut &[u8]) -> Self {
                 let (bytes, rest) = input.split_at(std::mem::size_of::<Self>()); 
                 *input = rest ; 
-                Self::from_le_bytes(bytes.try_into().unwrap())
+                Self::from_le_bytes(bytes.try_into().expect("error in impl for"))
             }
         }
     )*
@@ -84,8 +84,13 @@ impl DancingWaveUtils {
 
     pub fn render_song(&mut self) {
         
-        let mut out_file = File::create(&self.name).expect("File can't be opened nor created") ;
-        
+        let mut out_file =  OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&self.name);     
+
+        let file = match OpenOptions::new()
+            
         let first_file_reader = FileReader::new(self.ltracks[0].clone()).expect("can't open file");
         let samples = (*first_file_reader.get_total_samples()).expect("can't get samples");
 
@@ -93,12 +98,12 @@ impl DancingWaveUtils {
 
         let total_samples = self.nb_tracks as usize * (total_frame as usize + 1) * (self.size as usize / 2);
 
-        info!("total sample (in render song) : {}", total_samples);
+        //info!("total sample (in render song) : {}", total_samples);
  
         let b_total_samples = &total_samples.to_le_bytes(); 
 
 
-        info!("start{:#?}end", b_total_samples);
+        //info!("start{:#?}end", b_total_samples);
         
     
         let _res = out_file.write_all(b_total_samples);
@@ -129,31 +134,36 @@ impl DancingWaveUtils {
 
     pub fn parse_song(&self) -> Vec<f32>{
         
-        //info!("before file/buf content");
+        info!("before file/buf content");
         let file_content = fs::read(&self.name).expect("couldn't read file");
         let mut byte_content = &file_content[..]; 
 
-        //info!("before total_samples");
+        info!("before total_samples");
         // std::mem::size_of<T>() is evaluated at compile time
-        let total_samples = <usize as EndianRead>::read_be(&mut byte_content) as usize; 
+        let total_samples = <usize as EndianRead>::read_ne(&mut byte_content) as usize; 
         
-        //info!("total_samples");
+        info!("total_samples");
 
         info!("{}", total_samples); 
         info!("beofre out_buf");
-        let out_buf : Vec<f32> = vec![0.0 ; total_samples];
+        let mut out_buf : Vec<f32> = vec![0.0 ; total_samples];
 
         info!("before to_read");
-        let to_read = std::mem::size_of::<f32>() * total_samples;
+        let to_read = std::mem::size_of::<f32>() * total_samples - 1;
 
-        info!("the for loop is panicking");
+        println!("{}", to_read);
+
+        info!("for loop");
         
-        //let total_frame = <f32 as EndianRead>::read_be(&mut byte_content) ; ; 
+        //let total_frame = <f32 as EndianRead>::read_ne(&mut byte_content) ; ; 
 
-        for _ in 0..to_read {
-            let sample = <f32 as EndianRead>::read_be(&mut byte_content) ; 
-            info!("{}", sample);
-        }   
+        for _ in 0..total_samples {
+            let sample = <f32 as EndianRead>::read_ne(&mut byte_content);
+            out_buf.push(sample);
+            //info!("{}", sample);
+        }  
+
+        info!("after for loop");
 
         out_buf
 

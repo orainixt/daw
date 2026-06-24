@@ -8,6 +8,8 @@ use egui::{
      lerp, pos2, remap, vec2,
 };
 
+use log::{info};
+
 use std::{
     fs::{File}  
 };
@@ -48,12 +50,15 @@ impl DancingWaves {
         let nb_tracks = lfiles.len();
         let mut render = DancingWaveUtils::new(nb_tracks as u32, size, lfiles.clone(), sample_rate, name.clone());
         
-        println!("before render song");
+        info!("before render song");
         // This is a bit silly to do
         // (render song in a file then read directly this file) 
         render.render_song();
 
-        println!("before parse_song");
+        info!("render_song ok \nbefore parse_song");
+
+        let magn : Vec<f32> = render.parse_song(); 
+
         
         Self {
             magnitude: render.parse_song(),
@@ -64,9 +69,7 @@ impl DancingWaves {
         }
     }
 
-    fn prepare_for_file(&self) {
-        todo!();
-    }
+
 
     pub fn ui(&mut self, ui: &mut Ui) {
 
@@ -75,6 +78,7 @@ impl DancingWaves {
         } else {
             Color32::from_black_alpha(240)
         };
+        
 
 
         Frame::canvas(ui.style()).show(ui, |ui| {
@@ -102,6 +106,7 @@ impl DancingWaves {
             let end = start + (self.nb_tracks * size / 2); 
 
             if end > self.magnitude.len() { return; }
+
 
             let curr_frame_data = FrameData::new(&self.magnitude[start..end]);
             
