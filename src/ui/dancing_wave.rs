@@ -53,15 +53,12 @@ impl DancingWaves {
         info!("before render song");
         // This is a bit silly to do
         // (render song in a file then read directly this file) 
-        render.render_song();
 
         info!("render_song ok \nbefore parse_song");
 
-        let magn : Vec<f32> = render.parse_song(); 
-
         
         Self {
-            magnitude: render.parse_song(),
+            magnitude: render.open_song(),
             fps: (sample_rate as f64) / (size as f64),
             nb_tracks: nb_tracks,
             render: render,

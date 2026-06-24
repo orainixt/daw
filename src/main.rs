@@ -76,8 +76,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let lfiles : Vec<String> = files_list
         .iter()
-        .map(|i| format!("samples/{}", i))
+        .map(|i| format!("chill2/{}", i))
         .collect();
+
+    println!("{:?}", lfiles);
     
     //this should be fetced by symphonia in file_reader
     let sample_rate = 48000.0;

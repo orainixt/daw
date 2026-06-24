@@ -24,6 +24,7 @@ format-bytes = "0.3.0"
 slice = "0.0.4"
 
 [profile.release]
+debug = true
 codegen-units = 1
 lto = true
 

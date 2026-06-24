@@ -81,22 +81,48 @@ impl DancingWaveUtils {
         }
     }
 
-
-    pub fn render_song(&mut self) {
+    pub fn open_song(&mut self) -> Vec<f32> {
         
-        let mut out_file =  OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(&self.name);     
-
-        let file = match OpenOptions::new()
-            
         let first_file_reader = FileReader::new(self.ltracks[0].clone()).expect("can't open file");
         let samples = (*first_file_reader.get_total_samples()).expect("can't get samples");
 
         let total_frame = (samples + self.size as u64 - 1) / self.size as u64;
-
         let total_samples = self.nb_tracks as usize * (total_frame as usize + 1) * (self.size as usize / 2);
+
+        let mut out_file_res = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&self.name);
+
+        let mut out_buf = vec![0.0 ; total_samples] ; 
+
+        match out_file_res {
+
+            Ok(out_file) => {
+                self.render_song(out_file, &mut out_buf, total_samples); 
+            }
+
+            Err(_) => { 
+                self.parse_song(&mut out_buf);
+            }
+        };
+
+
+        let max = out_buf.iter().cloned().fold(f32::NAN, f32::max); 
+        
+        if self.max_amp < max {
+            self.max_amp = max;
+        }    
+
+
+        out_buf
+
+    }
+
+
+    pub fn render_song(&mut self, mut out_file: File, mut out_buf :&mut [f32], total_samples: usize) {
+
+
 
         //info!("total sample (in render song) : {}", total_samples);
  
@@ -108,7 +134,6 @@ impl DancingWaveUtils {
     
         let _res = out_file.write_all(b_total_samples);
 
-        let mut out_buf : Vec<f32> = vec![0.0 ; total_samples];
         let mut fft_buf: Vec<Complex<f32>> = vec![Complex{re: 0.0, im: 0.0} ; self.size as usize]; 
         
         // need to use rayon to do that when multiple tracks
@@ -128,11 +153,13 @@ impl DancingWaveUtils {
         
         let buf : &[u8] = self.f32_to_u8(&out_buf);
         
-        let _ = out_file.write_all(buf); 
-    
+        let _ = out_file.write_all(buf);
+
+        println!("max_amp : {}", self.max_amp);
+
     }
 
-    pub fn parse_song(&self) -> Vec<f32>{
+    pub fn parse_song(&self, out_buf :&mut [f32] ){
         
         info!("before file/buf content");
         let file_content = fs::read(&self.name).expect("couldn't read file");
@@ -146,26 +173,24 @@ impl DancingWaveUtils {
 
         info!("{}", total_samples); 
         info!("beofre out_buf");
-        let mut out_buf : Vec<f32> = vec![0.0 ; total_samples];
+
 
         info!("before to_read");
         let to_read = std::mem::size_of::<f32>() * total_samples - 1;
 
-        println!("{}", to_read);
+        println!("to_read : {}", to_read);
 
         info!("for loop");
         
         //let total_frame = <f32 as EndianRead>::read_ne(&mut byte_content) ; ; 
 
-        for _ in 0..total_samples {
+        for i in 0..total_samples {
             let sample = <f32 as EndianRead>::read_ne(&mut byte_content);
-            out_buf.push(sample);
+            out_buf[i] = sample;
             //info!("{}", sample);
         }  
 
         info!("after for loop");
-
-        out_buf
 
     }
 
