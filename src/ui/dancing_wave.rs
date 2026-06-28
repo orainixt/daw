@@ -66,7 +66,32 @@ impl DancingWaves {
             frame_index: 0,
         }
     }
+    
+    pub fn get_frame() {
 
+        let curr_frame = (time * self.fps) as usize;
+        /**
+        let curr_frame = self.frame_index; 
+        self.frame_index += 1;
+        */
+        let size = self.render.get_size();
+
+        
+        let start = curr_frame * self.nb_tracks * size / 2; 
+        let end = start + (self.nb_tracks * size / 2); 
+
+        if end > self.magnitude.len() { return; }
+
+
+        let curr_frame_data = FrameData::new(&self.magnitude[start..end]);
+        
+
+        let mut shapes = vec![]; 
+
+        let thickness = 2.0; 
+
+        
+    }
 
 
     pub fn ui(&mut self, ui: &mut Ui) {
@@ -92,27 +117,7 @@ impl DancingWaves {
                 rect
             ); 
 
-            let curr_frame = (time * self.fps) as usize;
-            /**
-            let curr_frame = self.frame_index; 
-            self.frame_index += 1;
-            */
-            let size = self.render.get_size();
-
             
-            let start = curr_frame * self.nb_tracks * size / 2; 
-            let end = start + (self.nb_tracks * size / 2); 
-
-            if end > self.magnitude.len() { return; }
-
-
-            let curr_frame_data = FrameData::new(&self.magnitude[start..end]);
-            
-
-            let mut shapes = vec![]; 
-
-            let thickness = 2.0; 
-
             for i in 0..self.nb_tracks {
 
                 let mut points : Vec<Pos2> = Vec::with_capacity(size / 2); 
